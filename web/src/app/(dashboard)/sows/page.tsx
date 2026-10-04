@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 
 import { PiggyBankIcon, PlusIcon, SearchIcon } from "@/components/icons";
 import { SelectField } from "@/components/form";
+import { FarmGate, PageHeader } from "@/components/layout";
 import { ConfirmModal, SowFormModal } from "@/components/modals";
 import { Table } from "@/components/table";
 import { Button } from "@/components/ui";
@@ -16,7 +17,6 @@ import {
   usePagination,
   useTableActions,
 } from "@/hooks";
-import { useAuth } from "@/providers/authProvider";
 import type { SowPayload } from "@/schemas/sowSchema";
 import { penService } from "@/services/penService";
 import { sowService } from "@/services/sowService";
@@ -34,17 +34,8 @@ const STATUS_FILTER_OPTIONS = [
 const EMPTY_SOWS: Sow[] = [];
 const EMPTY_PENS: Pen[] = [];
 
-// Tách ra để đổi trang trại thì remount (key) và state/dữ liệu của trại cũ không bị lẫn sang trại mới
 export default function SowsPage() {
-  const { activeFarm, loading } = useAuth();
-
-  if (loading) return <p className="text-fg-muted text-xs">Đang tải...</p>;
-  if (!activeFarm) {
-    return (
-      <p className="text-fg-muted text-xs">Bạn chưa thuộc trang trại nào.</p>
-    );
-  }
-  return <SowsContent key={activeFarm.id} farm={activeFarm} />;
+  return <FarmGate>{(farm) => <SowsContent farm={farm} />}</FarmGate>;
 }
 
 function SowsContent({ farm }: { farm: Farm }) {
@@ -172,27 +163,23 @@ function SowsContent({ farm }: { farm: Farm }) {
 
   return (
     <div className="space-y-6">
-      <div className="card flex flex-col justify-between gap-4 p-5 sm:flex-row sm:items-center">
-        <div>
-          <h2 className="text-fg flex items-center text-xl font-bold">
-            <PiggyBankIcon size="sm" className="text-primary mr-2 shrink-0" />
-            1. Quản Lý Đàn Heo Nái
-          </h2>
-          <p className="text-fg-muted mt-1 text-xs">
-            Danh sách nái sinh sản, giống, thể trạng, chuồng trại và lịch sử đẻ.
-          </p>
-        </div>
-        {canWrite && (
-          <Button
-            onClick={handleCreate}
-            disabled={loading || !!error}
-            leftIcon={<PlusIcon size="xs" />}
-            className="rounded-xl text-xs font-semibold"
-          >
-            Thêm Nái Mới
-          </Button>
-        )}
-      </div>
+      <PageHeader
+        icon={<PiggyBankIcon size="sm" className="text-primary" />}
+        title="1. Quản Lý Đàn Heo Nái"
+        description="Danh sách nái sinh sản, giống, thể trạng, chuồng trại và lịch sử đẻ."
+        action={
+          canWrite && (
+            <Button
+              onClick={handleCreate}
+              disabled={loading || !!error}
+              leftIcon={<PlusIcon size="xs" />}
+              className="rounded-xl text-xs font-semibold"
+            >
+              Thêm Nái Mới
+            </Button>
+          )
+        }
+      />
 
       <div className="card overflow-hidden">
         <div className="border-line-soft flex flex-col items-center justify-between gap-3 border-b p-4 sm:flex-row">

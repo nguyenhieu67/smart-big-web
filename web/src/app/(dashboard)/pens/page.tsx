@@ -6,10 +6,10 @@ import {
   TrashIcon,
   WarehouseIcon,
 } from "@/components/icons";
+import { FarmGate, PageHeader } from "@/components/layout";
 import { ConfirmModal, PenFormModal } from "@/components/modals";
 import { Button } from "@/components/ui";
 import { useAppToast, useFetchData, useTableActions } from "@/hooks";
-import { useAuth } from "@/providers/authProvider";
 import type { PenPayload } from "@/schemas/penSchema";
 import { penService } from "@/services/penService";
 import type { Farm } from "@/types/auth";
@@ -24,17 +24,8 @@ const PEN_PLACEHOLDER = {
   condition: "Tốt",
 };
 
-// Tách ra để đổi trang trại thì remount (key) và dữ liệu của trại cũ không bị lẫn sang trại mới
 export default function PensPage() {
-  const { activeFarm, loading } = useAuth();
-
-  if (loading) return <p className="text-fg-muted text-xs">Đang tải...</p>;
-  if (!activeFarm) {
-    return (
-      <p className="text-fg-muted text-xs">Bạn chưa thuộc trang trại nào.</p>
-    );
-  }
-  return <PensContent key={activeFarm.id} farm={activeFarm} />;
+  return <FarmGate>{(farm) => <PensContent farm={farm} />}</FarmGate>;
 }
 
 function PensContent({ farm }: { farm: Farm }) {
@@ -67,27 +58,22 @@ function PensContent({ farm }: { farm: Farm }) {
 
   return (
     <div className="space-y-6">
-      <div className="card flex flex-col justify-between gap-4 p-5 sm:flex-row sm:items-center">
-        <div>
-          <h2 className="text-fg flex items-center text-xl font-bold">
-            <WarehouseIcon size="sm" className="text-info mr-2 shrink-0" />
-            9. Quản Lý Chuồng Trại
-          </h2>
-          <p className="text-fg-muted mt-1 text-xs">
-            Các dãy chuồng của trại: khu nái mang thai, khu đẻ nuôi con, khu cai
-            sữa, khu nuôi thịt.
-          </p>
-        </div>
-        {canWrite && (
-          <Button
-            onClick={actions.openCreate}
-            leftIcon={<PlusIcon size="xs" />}
-            className="rounded-xl text-xs font-semibold"
-          >
-            Thêm Chuồng
-          </Button>
-        )}
-      </div>
+      <PageHeader
+        icon={<WarehouseIcon size="sm" className="text-info" />}
+        title="9. Quản Lý Chuồng Trại"
+        description="Các dãy chuồng của trại: khu nái mang thai, khu đẻ nuôi con, khu cai sữa, khu nuôi thịt."
+        action={
+          canWrite && (
+            <Button
+              onClick={actions.openCreate}
+              leftIcon={<PlusIcon size="xs" />}
+              className="rounded-xl text-xs font-semibold"
+            >
+              Thêm Chuồng
+            </Button>
+          )
+        }
+      />
 
       {loading ? (
         <p className="text-fg-muted p-6 text-center text-sm">Đang tải...</p>

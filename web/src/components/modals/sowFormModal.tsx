@@ -2,13 +2,11 @@
 
 import axios from "axios";
 import Link from "next/link";
-import { useState } from "react";
 
 import { InputField, SelectField } from "@/components/form";
-import { Button } from "@/components/ui";
+import { Button, FormAlert } from "@/components/ui";
 import { SOW_BREED_SUGGESTIONS, SOW_STATUS_OPTIONS } from "@/constants/sow";
-import { useForm } from "@/hooks";
-import { parseApiError } from "@/lib/apiError";
+import { useForm, useFormSubmit } from "@/hooks";
 import {
   sowFormSchema,
   type SowFormValues,
@@ -17,7 +15,6 @@ import {
 import type { Pen } from "@/types/pen";
 import type { Sow } from "@/types/sow";
 import { toInputDate } from "@/utils/format";
-import { fieldErrors } from "@/utils/validate";
 
 import { Modal } from "./modal";
 
@@ -63,36 +60,19 @@ export function SowFormModal({
   onClose,
 }: SowFormModalProps) {
   const { formData, handleChange } = useForm<SowFormValues>(toFormValues(sow));
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [formError, setFormError] = useState("");
-  const [submitting, setSubmitting] = useState(false);
+  const { errors, formError, submitting, handleSubmit } = useFormSubmit({
+    schema: sowFormSchema,
+    values: formData,
+    onSubmit,
+    // BE trả 409 "Duplicate entry." khi trùng (farm_id, code)
+    mapError: (err) =>
+      axios.isAxiosError(err) && err.response?.status === 409
+        ? { code: "Mã nái đã tồn tại trong trại này" }
+        : undefined,
+  });
 
   const penOptions = pens.map((p) => ({ label: p.name, value: String(p.id) }));
   const today = new Date().toISOString().slice(0, 10);
-
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setFormError("");
-
-    const parsed = sowFormSchema.safeParse(formData);
-    if (!parsed.success) return setErrors(fieldErrors(parsed.error));
-    setErrors({});
-
-    setSubmitting(true);
-    try {
-      await onSubmit(parsed.data);
-    } catch (err) {
-      const { message, fields } = parseApiError(err);
-      // BE trả 409 "Duplicate entry." khi trùng (farm_id, code)
-      if (axios.isAxiosError(err) && err.response?.status === 409) {
-        setErrors({ code: "Mã nái đã tồn tại trong trại này" });
-      } else {
-        setErrors(fields);
-        setFormError(message);
-      }
-      setSubmitting(false);
-    }
-  }
 
   return (
     <Modal
@@ -100,14 +80,7 @@ export function SowFormModal({
       onClose={onClose}
     >
       <form onSubmit={handleSubmit} noValidate className="space-y-4 pb-2">
-        {formError && (
-          <div
-            role="alert"
-            className="border-danger-line bg-danger-soft text-danger-fg rounded-lg border p-2.5 text-xs"
-          >
-            {formError}
-          </div>
-        )}
+        {formError && <FormAlert>{formError}</FormAlert>}
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-3">
           <InputField

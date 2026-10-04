@@ -1,18 +1,14 @@
 "use client";
 
-import { useState } from "react";
-
 import { InputField } from "@/components/form";
-import { Button } from "@/components/ui";
-import { useForm } from "@/hooks";
-import { parseApiError } from "@/lib/apiError";
+import { Button, FormAlert } from "@/components/ui";
+import { useForm, useFormSubmit } from "@/hooks";
 import {
   penFormSchema,
   type PenFormValues,
   type PenPayload,
 } from "@/schemas/penSchema";
 import type { Pen } from "@/types/pen";
-import { fieldErrors } from "@/utils/validate";
 
 import { Modal } from "./modal";
 
@@ -34,28 +30,11 @@ function toFormValues(pen: Pen | null): PenFormValues {
 // Parent render modal này có `key` theo từng chuồng nên state luôn khởi tạo mới mỗi lần mở
 export function PenFormModal({ pen, onSubmit, onClose }: PenFormModalProps) {
   const { formData, handleChange } = useForm<PenFormValues>(toFormValues(pen));
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [formError, setFormError] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setFormError("");
-
-    const parsed = penFormSchema.safeParse(formData);
-    if (!parsed.success) return setErrors(fieldErrors(parsed.error));
-    setErrors({});
-
-    setSubmitting(true);
-    try {
-      await onSubmit(parsed.data);
-    } catch (err) {
-      const { message, fields } = parseApiError(err);
-      setErrors(fields);
-      setFormError(message);
-      setSubmitting(false);
-    }
-  }
+  const { errors, formError, submitting, handleSubmit } = useFormSubmit({
+    schema: penFormSchema,
+    values: formData,
+    onSubmit,
+  });
 
   return (
     <Modal
@@ -64,14 +43,7 @@ export function PenFormModal({ pen, onSubmit, onClose }: PenFormModalProps) {
       maxWidth="max-w-md"
     >
       <form onSubmit={handleSubmit} noValidate className="space-y-4 pb-2">
-        {formError && (
-          <div
-            role="alert"
-            className="border-danger-line bg-danger-soft text-danger-fg rounded-lg border p-2.5 text-xs"
-          >
-            {formError}
-          </div>
-        )}
+        {formError && <FormAlert>{formError}</FormAlert>}
 
         <InputField
           id="name"
