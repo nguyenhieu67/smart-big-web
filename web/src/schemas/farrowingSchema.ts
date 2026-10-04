@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { AUTO_PEN } from "@/constants/pen";
 import { toLocalDateString } from "@/utils/format";
 
 const count = (label: string, required: boolean) =>
@@ -20,6 +21,7 @@ const count = (label: string, required: boolean) =>
 // Form giữ mọi giá trị dạng chuỗi; tên field trùng body API để lỗi từ BE gắn đúng ô nhập
 const farrowingBase = z.object({
   sow_id: z.string(),
+  pen_id: z.string(),
   farrow_date: z
     .string()
     .min(1, "Vui lòng chọn ngày đẻ")
@@ -58,15 +60,29 @@ const weakRule = {
   },
 };
 
-// Sửa: không đổi nái nên sow_id có thể trống (API cũng bỏ qua sow_id khi PATCH)
-export const farrowingUpdateSchema = farrowingBase.refine(
-  weakRule.check,
-  weakRule.params,
-);
+// pen_id của form -> body API: AUTO_PEN thành create_pen, id thành pen_id, rỗng thì bỏ
+type FarrowingBody = Omit<z.output<typeof farrowingBase>, "pen_id"> & {
+  pen_id?: string;
+  create_pen?: boolean;
+};
+
+const toBody = ({
+  pen_id,
+  ...rest
+}: z.output<typeof farrowingBase>): FarrowingBody => {
+  if (pen_id === AUTO_PEN) return { ...rest, create_pen: true };
+  return pen_id ? { ...rest, pen_id } : rest;
+};
+
+// Sửa: không đổi nái/chuồng nên sow_id, pen_id có thể trống (API cũng bỏ qua khi PATCH)
+export const farrowingUpdateSchema = farrowingBase
+  .refine(weakRule.check, weakRule.params)
+  .transform(toBody);
 
 export const farrowingCreateSchema = farrowingBase
   .extend({ sow_id: z.string().min(1, "Vui lòng chọn nái") })
-  .refine(weakRule.check, weakRule.params);
+  .refine(weakRule.check, weakRule.params)
+  .transform(toBody);
 
 export type FarrowingFormValues = z.input<typeof farrowingCreateSchema>;
-export type FarrowingPayload = z.output<typeof farrowingCreateSchema>;
+export type FarrowingPayload = FarrowingBody;

@@ -178,6 +178,11 @@ export function HealthLogFormModal({
           />
         </div>
 
+        <p className="text-fg-muted -mt-2 text-xs">
+          Nếu có chi phí, khoản chi sẽ tự ghi vào sổ chi phí (danh mục
+          &quot;Thuốc / Vaccine&quot;).
+        </p>
+
         <InputField
           id="next_date"
           name="next_date"

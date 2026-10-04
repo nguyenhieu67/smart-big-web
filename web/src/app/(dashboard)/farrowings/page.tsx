@@ -17,15 +17,18 @@ import {
 } from "@/hooks";
 import type { FarrowingPayload } from "@/schemas/farrowingSchema";
 import { farrowingService } from "@/services/farrowingService";
+import { penService } from "@/services/penService";
 import { sowService } from "@/services/sowService";
 import type { Farm } from "@/types/auth";
 import type { Farrowing } from "@/types/farrowing";
+import type { Pen } from "@/types/pen";
 import type { Sow } from "@/types/sow";
 import type { ColumnI } from "@/types/table";
 import { formatDate } from "@/utils/format";
 
 const EMPTY_FARROWINGS: Farrowing[] = [];
 const EMPTY_SOWS: Sow[] = [];
+const EMPTY_PENS: Pen[] = [];
 
 export default function FarrowingsPage() {
   return <FarmGate>{(farm) => <FarrowingsContent farm={farm} />}</FarmGate>;
@@ -39,9 +42,17 @@ function FarrowingsContent({ farm }: { farm: Farm }) {
   const toast = useAppToast();
 
   const { data, loading, error, refetch } = useFetchData(() =>
-    Promise.all([farrowingService.list(), sowService.list()]),
+    Promise.all([
+      farrowingService.list(),
+      sowService.list(),
+      penService.list(),
+    ]),
   );
-  const [farrowings, sows] = data ?? [EMPTY_FARROWINGS, EMPTY_SOWS];
+  const [farrowings, sows, pens] = data ?? [
+    EMPTY_FARROWINGS,
+    EMPTY_SOWS,
+    EMPTY_PENS,
+  ];
 
   const actions = useTableActions<Farrowing>({
     remove: (f) => farrowingService.remove(f.id),
@@ -226,6 +237,7 @@ function FarrowingsContent({ farm }: { farm: Farm }) {
           key={actions.selectedItem?.id ?? "new"}
           farrowing={actions.selectedItem}
           sows={sows}
+          pens={pens}
           onSubmit={handleSubmit}
           onClose={actions.closeForm}
         />

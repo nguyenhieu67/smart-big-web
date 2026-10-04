@@ -24,7 +24,7 @@ interface BoarFormModalProps {
 // Parent render modal này có `key` theo từng bản ghi nên state luôn khởi tạo mới mỗi lần mở
 export function BoarFormModal({ boar, onSubmit, onClose }: BoarFormModalProps) {
   const { formData, handleChange } = useForm<BoarFormValues>({
-    code: boar?.code ?? "",
+    code: boar?.code ? boar?.code : "TINH-",
     breed: boar?.breed ?? "",
   });
   const { errors, formError, submitting, handleSubmit } = useFormSubmit({

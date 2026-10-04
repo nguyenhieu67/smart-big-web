@@ -58,3 +58,25 @@ export const addDaysToDate = (date: string, days: number) => {
   d.setUTCDate(d.getUTCDate() + days);
   return d.toISOString().slice(0, 10);
 };
+
+// Màu chữ cho ngày đến hạn: quá hạn (đỏ), trong 7 ngày tới (vàng), còn lại bình thường
+export const dueDateTone = (iso: string) => {
+  const today = toLocalDateString();
+  const date = toInputDate(iso);
+  if (date < today) return "text-danger font-semibold";
+  const days = (Date.parse(date) - Date.parse(today)) / (24 * 60 * 60 * 1000);
+  return days <= 7 ? "text-warning-fg font-semibold" : "text-indigo-fg";
+};
+
+// Cộng tháng theo UTC trên chuỗi "YYYY-MM-DD", ngày không tràn sang tháng sau (31/12 + 2 tháng = 28/02)
+export const addMonthsToDate = (date: string, months: number) => {
+  const d = new Date(`${date}T00:00:00Z`);
+  const day = d.getUTCDate();
+  d.setUTCDate(1);
+  d.setUTCMonth(d.getUTCMonth() + months);
+  const lastDay = new Date(
+    Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0),
+  ).getUTCDate();
+  d.setUTCDate(Math.min(day, lastDay));
+  return d.toISOString().slice(0, 10);
+};

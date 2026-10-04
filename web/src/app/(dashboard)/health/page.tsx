@@ -27,12 +27,7 @@ import type { Farm } from "@/types/auth";
 import type { HealthLog } from "@/types/healthLog";
 import type { Sow } from "@/types/sow";
 import type { ColumnI } from "@/types/table";
-import {
-  formatCurrency,
-  formatDate,
-  toInputDate,
-  toLocalDateString,
-} from "@/utils/format";
+import { dueDateTone, formatCurrency, formatDate } from "@/utils/format";
 
 const EMPTY_LOGS: HealthLog[] = [];
 const EMPTY_SOWS: Sow[] = [];
@@ -41,17 +36,6 @@ const CATEGORY_FILTER_OPTIONS = [
   { value: "", label: "Tất cả phân loại" },
   ...HEALTH_CATEGORY_OPTIONS.map(({ value, label }) => ({ value, label })),
 ];
-
-const DAY_MS = 24 * 60 * 60 * 1000;
-
-// Lịch tiếp theo: quá hạn (đỏ), trong 7 ngày tới (vàng), còn lại bình thường
-function nextDateTone(nextDate: string) {
-  const today = toLocalDateString();
-  const date = toInputDate(nextDate);
-  if (date < today) return "text-danger font-semibold";
-  const days = (Date.parse(date) - Date.parse(today)) / DAY_MS;
-  return days <= 7 ? "text-warning-fg font-semibold" : "text-indigo-fg";
-}
 
 export default function HealthPage() {
   return <FarmGate>{(farm) => <HealthContent farm={farm} />}</FarmGate>;
@@ -177,7 +161,7 @@ function HealthContent({ farm }: { farm: Farm }) {
       text: "Lịch Tiếp Theo",
       render: (l) =>
         l.next_date ? (
-          <span className={nextDateTone(l.next_date)}>
+          <span className={dueDateTone(l.next_date)}>
             {formatDate(l.next_date)}
           </span>
         ) : (

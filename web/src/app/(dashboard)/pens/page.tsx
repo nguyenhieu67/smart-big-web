@@ -14,6 +14,7 @@ import type { PenPayload } from "@/schemas/penSchema";
 import { penService } from "@/services/penService";
 import type { Farm } from "@/types/auth";
 import type { Pen } from "@/types/pen";
+import { penOccupied } from "@/utils/pen";
 
 const EMPTY_PENS: Pen[] = [];
 
@@ -91,7 +92,9 @@ function PensContent({ farm }: { farm: Farm }) {
       ) : (
         <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
           {pens.map((pen) => {
-            const count = pen._count?.sows ?? 0;
+            const sowCount = pen._count?.sows ?? 0;
+            const pigletCount = pen.piglets ?? 0;
+            const count = penOccupied(pen);
             const percent =
               pen.capacity > 0
                 ? Math.min(100, Math.round((count / pen.capacity) * 100))
@@ -154,6 +157,13 @@ function PensContent({ farm }: { farm: Farm }) {
                     style={{ width: `${percent}%` }}
                   />
                 </div>
+
+                <p
+                  className={`text-[11px] ${isFull ? "text-danger font-semibold" : "text-fg-muted"}`}
+                >
+                  Nái {sowCount} + heo con {pigletCount}
+                  {isFull && " · Chuồng đã đầy"}
+                </p>
 
                 {(canWrite || canDelete) && (
                   <div className="flex items-center justify-end gap-1 pt-1">

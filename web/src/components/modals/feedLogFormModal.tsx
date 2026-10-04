@@ -184,6 +184,10 @@ export function FeedLogFormModal({
           />
         </div>
 
+        <p className="text-fg-muted text-xs">
+          Chi phí cám sẽ tự ghi vào sổ chi phí (danh mục &quot;Thức ăn&quot;).
+        </p>
+
         {estimate != null && (
           <p className="bg-surface-muted text-fg-body rounded-lg p-2.5 text-xs">
             Thành tiền ước tính:{" "}

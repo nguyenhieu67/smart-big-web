@@ -67,7 +67,7 @@
   --info-line: #bae6fd;
 
   /* Màu nhận diện từng công đoạn trong quy trình chăn nuôi */
-  --indigo: #4f46e5; /* mang thai */
+  --indigo: #4f46e5;
   --indigo-soft: #eef2ff;
   --indigo-fg: #4338ca;
 
@@ -79,12 +79,13 @@
   --teal-soft: #f0fdfa;
   --teal-fg: #0f766e;
 
-  /* Biểu đồ */
-  --chart-1: #10b981; /* doanh thu */
-  --chart-2: #f43f5e; /* chi phí */
-  --chart-3: #6366f1; /* mang thai */
-  --chart-4: #a855f7; /* vừa phối */
-  --chart-5: #f59e0b; /* heo con */
+  /* Biểu đồ: 5 màu phân loại theo thứ tự cố định (đã kiểm tra mù màu và tương phản, sáng + tối) */
+  /* Biểu đồ: 5 màu phân loại theo thứ tự cố định, đã kiểm tra mù màu + tương phản (sáng và tối) */
+  --chart-1: #2a78d6;
+  --chart-2: #eb6834;
+  --chart-3: #1baf7a; /* mang thai */
+  --chart-4: #eda100;
+  --chart-5: #e87ba4;
   --chart-grid: #e2e8f0;
 
   /* Scrollbar */
@@ -165,11 +166,11 @@
   --teal-soft: rgb(20 184 166 / 0.14);
   --teal-fg: #5eead4;
 
-  --chart-1: #34d399;
-  --chart-2: #fb7185;
-  --chart-3: #818cf8;
-  --chart-4: #c084fc;
-  --chart-5: #fbbf24;
+  --chart-1: #3987e5;
+  --chart-2: #d95926;
+  --chart-3: #199e70;
+  --chart-4: #c98500;
+  --chart-5: #d55181;
   --chart-grid: #273449;
 
   --scroll-track: #111827;
