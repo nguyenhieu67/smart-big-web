@@ -51,3 +51,10 @@ export const formatAge = (iso: string, now: Date = new Date()) => {
   if (years === 0) return `${rest} tháng`;
   return rest === 0 ? `${years} năm` : `${years} năm ${rest} tháng`;
 };
+
+// Cộng ngày theo UTC trên chuỗi "YYYY-MM-DD" (cùng cách tính với API) -> "YYYY-MM-DD"
+export const addDaysToDate = (date: string, days: number) => {
+  const d = new Date(`${date}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+};
