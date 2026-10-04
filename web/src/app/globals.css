@@ -1,1 +1,380 @@
 @import "tailwindcss";
+
+/* Dark mode: bật bằng class `.dark` trên <html> */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ==========================================================================
+   1. TOKENS (giá trị thật, đổi theo theme)
+   ========================================================================== */
+:root {
+  color-scheme: light;
+
+  /* Nền & bề mặt */
+  --page: #f1f5f9; /* nền vùng nội dung (slate-100) */
+  --surface: #ffffff; /* card, modal, dropdown */
+  --surface-muted: #f8fafc; /* input, thead, hover row (slate-50) */
+  --surface-hover: #f1f5f9;
+  --line: #e2e8f0; /* border (slate-200) */
+  --line-soft: #f1f5f9; /* divide giữa các dòng */
+  --overlay: rgb(15 23 42 / 0.6); /* nền mờ của modal */
+
+  /* Chữ */
+  --fg: #1e293b; /* tiêu đề, nội dung chính (slate-800) */
+  --fg-body: #334155; /* nội dung bảng (slate-700) */
+  --fg-muted: #64748b; /* mô tả, label phụ (slate-500) */
+  --fg-subtle: #94a3b8; /* placeholder, icon mờ (slate-400) */
+  --fg-on-primary: #ffffff;
+
+  /* Thương hiệu (hồng SmartPig) */
+  --primary: #db2777; /* pink-600 */
+  --primary-hover: #be185d; /* pink-700 */
+  --primary-soft: #fdf2f8; /* pink-50 */
+  --primary-soft-fg: #be185d;
+  --ring: #ec4899; /* focus ring (pink-500) */
+  --brand-from: #ec4899; /* gradient logo / nút nổi bật */
+  --brand-to: #e11d48;
+
+  /* Header + Sidebar (luôn tối ở cả 2 theme, như bản mẫu) */
+  --shell: #0f172a; /* slate-900 */
+  --shell-deep: #020617; /* slate-950 – đầu/chân sidebar */
+  --shell-line: #1e293b; /* slate-800 */
+  --shell-input: #1e293b;
+  --shell-fg: #cbd5e1; /* slate-300 */
+  --shell-fg-muted: #64748b;
+  --shell-hover: rgb(30 41 59 / 0.8);
+  --shell-active: #f1f5f9;
+  --shell-active-fg: #be185d;
+
+  /* Trạng thái: base / soft (nền nhạt) / fg (chữ trên nền nhạt) / line (viền nhạt) */
+  --success: #059669;
+  --success-soft: #ecfdf5;
+  --success-fg: #047857;
+  --success-line: #a7f3d0;
+
+  --danger: #e11d48;
+  --danger-soft: #fff1f2;
+  --danger-fg: #be123c;
+  --danger-line: #fecdd3;
+
+  --warning: #d97706;
+  --warning-soft: #fffbeb;
+  --warning-fg: #b45309;
+  --warning-line: #fde68a;
+
+  --info: #0284c7;
+  --info-soft: #f0f9ff;
+  --info-fg: #0369a1;
+  --info-line: #bae6fd;
+
+  /* Màu nhận diện từng công đoạn trong quy trình chăn nuôi */
+  --indigo: #4f46e5; /* mang thai */
+  --indigo-soft: #eef2ff;
+  --indigo-fg: #4338ca;
+
+  --purple: #9333ea; /* phối giống */
+  --purple-soft: #faf5ff;
+  --purple-fg: #7e22ce;
+
+  --teal: #0d9488; /* lợi nhuận */
+  --teal-soft: #f0fdfa;
+  --teal-fg: #0f766e;
+
+  /* Biểu đồ */
+  --chart-1: #10b981; /* doanh thu */
+  --chart-2: #f43f5e; /* chi phí */
+  --chart-3: #6366f1; /* mang thai */
+  --chart-4: #a855f7; /* vừa phối */
+  --chart-5: #f59e0b; /* heo con */
+  --chart-grid: #e2e8f0;
+
+  /* Scrollbar */
+  --scroll-track: #f1f5f9;
+  --scroll-thumb: #cbd5e1;
+  --scroll-thumb-hover: #94a3b8;
+
+  /* Đổ bóng */
+  --shadow-card: 0 1px 2px 0 rgb(15 23 42 / 0.05);
+  --shadow-pop: 0 25px 50px -12px rgb(15 23 42 / 0.25);
+  --shadow-primary: 0 4px 6px -1px rgb(219 39 119 / 0.2);
+}
+
+.dark {
+  color-scheme: dark;
+
+  --page: #0b1120;
+  --surface: #111827;
+  --surface-muted: #1e293b;
+  --surface-hover: #1e293b;
+  --line: #273449;
+  --line-soft: #1e293b;
+  --overlay: rgb(2 6 23 / 0.75);
+
+  --fg: #f1f5f9;
+  --fg-body: #cbd5e1;
+  --fg-muted: #94a3b8;
+  --fg-subtle: #64748b;
+  --fg-on-primary: #ffffff;
+
+  --primary: #ec4899; /* sáng hơn để đủ tương phản trên nền tối */
+  --primary-hover: #f472b6;
+  --primary-soft: rgb(236 72 153 / 0.14);
+  --primary-soft-fg: #f9a8d4;
+  --ring: #f472b6;
+  --brand-from: #ec4899;
+  --brand-to: #e11d48;
+
+  --shell: #0a0f1d;
+  --shell-deep: #020617;
+  --shell-line: #1e293b;
+  --shell-input: #1e293b;
+  --shell-fg: #cbd5e1;
+  --shell-fg-muted: #64748b;
+  --shell-hover: rgb(30 41 59 / 0.8);
+  --shell-active: #1e293b;
+  --shell-active-fg: #f9a8d4;
+
+  --success: #34d399;
+  --success-soft: rgb(16 185 129 / 0.14);
+  --success-fg: #6ee7b7;
+  --success-line: rgb(16 185 129 / 0.35);
+
+  --danger: #fb7185;
+  --danger-soft: rgb(244 63 94 / 0.14);
+  --danger-fg: #fda4af;
+  --danger-line: rgb(244 63 94 / 0.35);
+
+  --warning: #fbbf24;
+  --warning-soft: rgb(245 158 11 / 0.14);
+  --warning-fg: #fcd34d;
+  --warning-line: rgb(245 158 11 / 0.35);
+
+  --info: #38bdf8;
+  --info-soft: rgb(14 165 233 / 0.14);
+  --info-fg: #7dd3fc;
+  --info-line: rgb(14 165 233 / 0.35);
+
+  --indigo: #818cf8;
+  --indigo-soft: rgb(99 102 241 / 0.16);
+  --indigo-fg: #a5b4fc;
+
+  --purple: #c084fc;
+  --purple-soft: rgb(168 85 247 / 0.16);
+  --purple-fg: #d8b4fe;
+
+  --teal: #2dd4bf;
+  --teal-soft: rgb(20 184 166 / 0.14);
+  --teal-fg: #5eead4;
+
+  --chart-1: #34d399;
+  --chart-2: #fb7185;
+  --chart-3: #818cf8;
+  --chart-4: #c084fc;
+  --chart-5: #fbbf24;
+  --chart-grid: #273449;
+
+  --scroll-track: #111827;
+  --scroll-thumb: #334155;
+  --scroll-thumb-hover: #475569;
+
+  --shadow-card: 0 1px 2px 0 rgb(0 0 0 / 0.4);
+  --shadow-pop: 0 25px 50px -12px rgb(0 0 0 / 0.6);
+  --shadow-primary: 0 4px 6px -1px rgb(236 72 153 / 0.25);
+}
+
+/* ==========================================================================
+   2. THEME (map token -> class Tailwind: bg-surface, text-fg, border-line ...)
+   ========================================================================== */
+@theme inline {
+  --color-page: var(--page);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-surface-hover: var(--surface-hover);
+  --color-line: var(--line);
+  --color-line-soft: var(--line-soft);
+  --color-overlay: var(--overlay);
+
+  --color-fg: var(--fg);
+  --color-fg-body: var(--fg-body);
+  --color-fg-muted: var(--fg-muted);
+  --color-fg-subtle: var(--fg-subtle);
+  --color-fg-on-primary: var(--fg-on-primary);
+
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-soft: var(--primary-soft);
+  --color-primary-soft-fg: var(--primary-soft-fg);
+  --color-ring: var(--ring);
+  --color-brand-from: var(--brand-from);
+  --color-brand-to: var(--brand-to);
+
+  --color-shell: var(--shell);
+  --color-shell-deep: var(--shell-deep);
+  --color-shell-line: var(--shell-line);
+  --color-shell-input: var(--shell-input);
+  --color-shell-fg: var(--shell-fg);
+  --color-shell-fg-muted: var(--shell-fg-muted);
+  --color-shell-hover: var(--shell-hover);
+  --color-shell-active: var(--shell-active);
+  --color-shell-active-fg: var(--shell-active-fg);
+
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-success-fg: var(--success-fg);
+  --color-success-line: var(--success-line);
+
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-danger-fg: var(--danger-fg);
+  --color-danger-line: var(--danger-line);
+
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-warning-fg: var(--warning-fg);
+  --color-warning-line: var(--warning-line);
+
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --color-info-fg: var(--info-fg);
+  --color-info-line: var(--info-line);
+
+  --color-indigo: var(--indigo);
+  --color-indigo-soft: var(--indigo-soft);
+  --color-indigo-fg: var(--indigo-fg);
+
+  --color-purple: var(--purple);
+  --color-purple-soft: var(--purple-soft);
+  --color-purple-fg: var(--purple-fg);
+
+  --color-teal: var(--teal);
+  --color-teal-soft: var(--teal-soft);
+  --color-teal-fg: var(--teal-fg);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-chart-grid: var(--chart-grid);
+
+  --shadow-card: var(--shadow-card);
+  --shadow-pop: var(--shadow-pop);
+  --shadow-primary: var(--shadow-primary);
+
+  --radius-card: 1rem; /* rounded-card = rounded-2xl của bản mẫu */
+}
+
+/* ==========================================================================
+   3. BASE
+   ========================================================================== */
+@layer base {
+  body {
+    background-color: var(--page);
+    color: var(--fg);
+  }
+
+  ::placeholder {
+    color: var(--fg-subtle);
+  }
+
+  /* Focus ring thống nhất theo màu thương hiệu */
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+}
+
+/* ==========================================================================
+   4. COMPONENT CLASSES (lặp lại nhiều lần trong bản mẫu)
+   ========================================================================== */
+@layer components {
+  /* Thẻ trắng bo 2xl dùng khắp nơi */
+  .card {
+    background-color: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
+  }
+
+  /* Nút gradient hồng (nút "Ghi nhận mới", logo) */
+  .bg-brand-gradient {
+    background-image: linear-gradient(
+      to right,
+      var(--brand-from),
+      var(--brand-to)
+    );
+  }
+
+  /* Mục điều hướng sidebar đang chọn (thay cho .tab-btn.active) */
+  .nav-active {
+    background-color: var(--shell-active);
+    color: var(--shell-active-fg);
+    border-left: 4px solid var(--shell-active-fg);
+    font-weight: 600;
+  }
+
+  /* Badge trạng thái: dùng kèm màu, vd `badge badge-success` */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 9999px;
+    padding: 0.125rem 0.625rem;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .badge-success {
+    background-color: var(--success-soft);
+    color: var(--success-fg);
+  }
+  .badge-danger {
+    background-color: var(--danger-soft);
+    color: var(--danger-fg);
+  }
+  .badge-warning {
+    background-color: var(--warning-soft);
+    color: var(--warning-fg);
+  }
+  .badge-info {
+    background-color: var(--info-soft);
+    color: var(--info-fg);
+  }
+  .badge-indigo {
+    background-color: var(--indigo-soft);
+    color: var(--indigo-fg);
+  }
+  .badge-purple {
+    background-color: var(--purple-soft);
+    color: var(--purple-fg);
+  }
+  .badge-muted {
+    background-color: var(--surface-hover);
+    color: var(--fg-muted);
+  }
+  .badge-primary {
+    background-color: var(--primary-soft);
+    color: var(--primary-soft-fg);
+  }
+}
+
+/* ==========================================================================
+   5. UTILITIES
+   ========================================================================== */
+@layer utilities {
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: var(--scroll-track);
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: var(--scroll-thumb);
+    border-radius: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: var(--scroll-thumb-hover);
+  }
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: var(--scroll-thumb) transparent;
+  }
+}

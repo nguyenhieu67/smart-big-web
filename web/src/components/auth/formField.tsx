@@ -10,21 +10,21 @@ export function FormField({ label, error, id, ...props }: Props) {
     <div>
       <label
         htmlFor={id}
-        className="mb-1 block text-xs font-medium text-slate-700"
+        className="text-fg-body mb-1 block text-xs font-medium"
       >
         {label}
       </label>
       <input
         id={id}
         aria-invalid={!!error}
-        className={`w-full rounded-lg border bg-slate-50 p-2.5 text-xs focus:ring-2 focus:outline-none ${
+        className={`bg-surface-muted w-full rounded-lg border p-2.5 text-base focus:ring-2 focus:outline-none sm:text-xs ${
           error
-            ? "border-rose-400 focus:ring-rose-400"
-            : "border-slate-200 focus:ring-pink-500"
+            ? "border-danger focus:ring-danger"
+            : "border-line focus:ring-ring"
         }`}
         {...props}
       />
-      {error && <p className="mt-1 text-[11px] text-rose-600">{error}</p>}
+      {error && <p className="text-danger mt-1 text-[11px]">{error}</p>}
     </div>
   );
 }

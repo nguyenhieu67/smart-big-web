@@ -58,7 +58,8 @@ api.interceptors.response.use(
       await refreshSession();
       return api(original);
     } catch {
-      if (typeof window !== "undefined") window.location.href = "/login";
+      if (typeof window !== "undefined")
+        window.location.href = "/login?expired=1";
       return Promise.reject(error);
     }
   },

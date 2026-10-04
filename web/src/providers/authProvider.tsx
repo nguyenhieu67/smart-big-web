@@ -11,7 +11,7 @@ import {
 import { useRouter } from "next/navigation";
 
 import { ACTIVE_FARM_KEY } from "@/lib/axios";
-import { authService } from "@/services/auth.service";
+import { authService } from "@/services/authService";
 import type { Farm, User } from "@/types/auth";
 
 interface AuthContextValue {
@@ -52,7 +52,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     loadSession()
-      .catch(() => router.replace("/login"))
+      .catch(() => router.replace("/login?expired=1"))
       .finally(() => setLoading(false));
   }, [loadSession, router]);
 

@@ -1,6 +1,6 @@
 import api from "@/lib/axios";
 import type { AuthResult, Farm, User } from "@/types/auth";
-import type { LoginInput, RegisterInput } from "@/schemas/auth.schema";
+import type { LoginInput, RegisterInput } from "@/schemas/authSchema";
 
 export const authService = {
   async login(input: LoginInput) {

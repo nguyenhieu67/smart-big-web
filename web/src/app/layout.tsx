@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import { ToastProvider } from "@/providers/toastProvider";
+
 import "./globals.css";
 
 const inter = Inter({ subsets: ["vietnamese", "latin"] });
@@ -12,7 +14,10 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="vi">
-      <body className={`${inter.className} text-slate-800`}>{children}</body>
+      <body className={`${inter.className} text-fg`}>
+        {children}
+        <ToastProvider />
+      </body>
     </html>
   );
 }

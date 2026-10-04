@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
-import { AuthShell } from "@/components/auth/auth-shell";
-import { RegisterForm } from "@/components/auth/register-form";
+import { AuthShell } from "@/components/auth/authShell";
+import { RegisterForm } from "@/components/auth/registerForm";
 
 export const metadata: Metadata = { title: "Đăng ký - SmartPig" };
 

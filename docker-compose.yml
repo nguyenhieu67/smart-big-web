@@ -1,10 +1,12 @@
 services:
   web:
-    container_name: big-farm-web
+    container_name: smart-pig-web
     image: node:20-alpine
     working_dir: /app/web
     ports:
-      - '3000:3000'
+      - '5001:3001'
     volumes:
       - ./web:/app/web
+    environment:
+      - API_URL=http://host.docker.internal:3000
     command: [ 'npm', 'run', 'dev' ]

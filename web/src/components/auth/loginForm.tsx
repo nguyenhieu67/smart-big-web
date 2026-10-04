@@ -4,10 +4,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-import { FormField } from "@/components/auth/form-field";
-import { parseApiError } from "@/lib/api-error";
-import { fieldErrors, loginSchema } from "@/schemas/auth.schema";
-import { authService } from "@/services/auth.service";
+import { FormField } from "@/components/auth/formField";
+import { parseApiError } from "@/lib/apiError";
+import { loginSchema } from "@/schemas/authSchema";
+import { authService } from "@/services/authService";
+import { fieldErrors } from "@/utils/validate";
 
 export function LoginForm() {
   const router = useRouter();
@@ -42,7 +43,7 @@ export function LoginForm() {
       {formError && (
         <div
           role="alert"
-          className="rounded-lg border border-rose-200 bg-rose-50 p-2.5 text-xs text-rose-700"
+          className="border-danger-line bg-danger-soft text-danger-fg rounded-lg border p-2.5 text-xs"
         >
           {formError}
         </div>
@@ -66,15 +67,15 @@ export function LoginForm() {
       <button
         type="submit"
         disabled={submitting}
-        className="w-full rounded-lg bg-pink-600 py-2.5 text-xs font-semibold text-white transition hover:bg-pink-700 disabled:opacity-60"
+        className="bg-primary hover:bg-primary-hover w-full rounded-lg py-2.5 text-xs font-semibold text-white transition disabled:opacity-60"
       >
         {submitting ? "Đang đăng nhập..." : "Đăng nhập"}
       </button>
-      <p className="pt-1 text-center text-xs text-slate-500">
+      <p className="text-fg-muted pt-1 text-center text-xs">
         Chưa có tài khoản?{" "}
         <Link
           href="/register"
-          className="font-semibold text-pink-600 hover:underline"
+          className="text-primary font-semibold hover:underline"
         >
           Đăng ký
         </Link>
