@@ -1,5 +1,6 @@
 export * from "./boarFormModal";
 export * from "./confirmModal";
+export * from "./farrowingFormModal";
 export * from "./feedLogFormModal";
 export * from "./feedTypeFormModal";
 export * from "./healthLogFormModal";
