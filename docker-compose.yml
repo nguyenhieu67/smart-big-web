@@ -1,0 +1,10 @@
+services:
+  web:
+    container_name: big-farm-web
+    image: node:20-alpine
+    working_dir: /app/web
+    ports:
+      - '3000:3000'
+    volumes:
+      - ./web:/app/web
+    command: [ 'npm', 'run', 'dev' ]
