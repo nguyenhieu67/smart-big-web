@@ -1,6 +1,10 @@
 import api from "@/lib/axios";
 import type { HealthLogPayload } from "@/schemas/healthLogSchema";
-import type { HealthLog } from "@/types/healthLog";
+import type {
+  HealthCategory,
+  HealthLog,
+  TreatmentStatus,
+} from "@/types/healthLog";
 
 export const healthLogService = {
   async list() {
@@ -9,6 +13,22 @@ export const healthLogService = {
   },
 
   async create(input: HealthLogPayload) {
+    const { data } = await api.post<{ data: HealthLog }>("/health-logs", input);
+    return data.data;
+  },
+
+  // Ghi nhận cho đàn heo con (batch_id) thay vì nái; form sức khỏe trên web chỉ nhập cho nái
+  async createForBatch(input: {
+    batch_id: number;
+    log_date: string;
+    category: HealthCategory;
+    name: string;
+    dose?: string;
+    cost?: number;
+    status: TreatmentStatus;
+    vaccine_type_id?: number;
+    care_step?: string;
+  }) {
     const { data } = await api.post<{ data: HealthLog }>("/health-logs", input);
     return data.data;
   },

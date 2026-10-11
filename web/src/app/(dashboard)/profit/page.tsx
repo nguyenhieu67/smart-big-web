@@ -6,16 +6,18 @@ import { ChartLineIcon } from "@/components/icons";
 import { InputField } from "@/components/form";
 import { FarmGate, PageHeader } from "@/components/layout";
 import { Table } from "@/components/table";
-import { Button } from "@/components/ui";
+import { Button, Tabs } from "@/components/ui";
 import { useFetchData } from "@/hooks";
 import { expenseService } from "@/services/expenseService";
 import { farrowingService } from "@/services/farrowingService";
+import { feedLogService } from "@/services/feedLogService";
 import { healthLogService } from "@/services/healthLogService";
 import { pigletBatchService } from "@/services/pigletBatchService";
 import { saleService } from "@/services/saleService";
 import { sowService } from "@/services/sowService";
 import type { Expense } from "@/types/expense";
 import type { Farrowing } from "@/types/farrowing";
+import type { FeedLog } from "@/types/feed";
 import type { HealthLog } from "@/types/healthLog";
 import type { PigletBatch } from "@/types/piglet";
 import type { Sale } from "@/types/sale";
@@ -23,8 +25,10 @@ import type { Sow } from "@/types/sow";
 import type { ColumnI } from "@/types/table";
 import { formatCurrency, toLocalDateString } from "@/utils/format";
 import {
+  byBatch,
   byMonth,
   bySow,
+  type BatchProfitRow,
   inRange,
   summarize,
   type MonthRow,
@@ -38,6 +42,7 @@ const EMPTY = {
   sows: [] as Sow[],
   farrowings: [] as Farrowing[],
   healthLogs: [] as HealthLog[],
+  feedLogs: [] as FeedLog[],
 };
 
 const money = (value: number) => formatCurrency(value, "đ");
@@ -49,7 +54,7 @@ export default function ProfitPage() {
 
 function ProfitContent() {
   const { data, loading, error, refetch } = useFetchData(async () => {
-    const [sales, expenses, batches, sows, farrowings, healthLogs] =
+    const [sales, expenses, batches, sows, farrowings, healthLogs, feedLogs] =
       await Promise.all([
         saleService.list(),
         expenseService.list(),
@@ -57,13 +62,23 @@ function ProfitContent() {
         sowService.list(),
         farrowingService.list(),
         healthLogService.list(),
+        feedLogService.list(),
       ]);
-    return { sales, expenses, batches, sows, farrowings, healthLogs };
+    return {
+      sales,
+      expenses,
+      batches,
+      sows,
+      farrowings,
+      healthLogs,
+      feedLogs,
+    };
   });
   const source = data ?? EMPTY;
 
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
+  const [tab, setTab] = useState<"sows" | "piglets">("sows");
 
   // Mọi số liệu trên trang tính theo khoảng ngày đã chọn (bỏ trống = toàn bộ thời gian)
   const filtered = useMemo(() => {
@@ -75,6 +90,7 @@ function ProfitContent() {
         inRange(f.farrow_date, range),
       ),
       healthLogs: source.healthLogs.filter((h) => inRange(h.log_date, range)),
+      feedLogs: source.feedLogs.filter((f) => inRange(f.log_date, range)),
     };
   }, [source, from, to]);
 
@@ -94,6 +110,18 @@ function ProfitContent() {
         sales: filtered.sales,
         farrowings: filtered.farrowings,
         healthLogs: filtered.healthLogs,
+        feedLogs: filtered.feedLogs,
+      }),
+    [source, filtered],
+  );
+
+  const batchRows = useMemo(
+    () =>
+      byBatch({
+        batches: source.batches,
+        sales: filtered.sales,
+        healthLogs: filtered.healthLogs,
+        feedLogs: filtered.feedLogs,
       }),
     [source, filtered],
   );
@@ -165,13 +193,69 @@ function ProfitContent() {
     },
     {
       value: "healthCost",
+      text: "Chi Phí Thuốc / Vaccine (Nái)",
+      className: "text-danger text-right",
+      render: (r) => money(r.healthCost),
+    },
+    {
+      value: "feedCost",
+      text: "Chi Phí Cám (Nái)",
+      className: "text-danger text-right",
+      render: (r) => money(r.feedCost),
+    },
+    {
+      value: "net",
+      text: "Doanh Thu Trừ Chi Phí Nái",
+      className: "text-right font-black",
+      render: (r) => <span className={tone(r.net)}>{money(r.net)}</span>,
+    },
+  ];
+
+  const batchColumns: ColumnI<BatchProfitRow>[] = [
+    {
+      value: "code",
+      text: "Mã Đàn",
+      className: "text-warning-fg font-bold",
+      render: (r) => (
+        <>
+          {r.code}
+          <span className="text-fg-muted block text-[11px] font-normal">
+            Nái mẹ: {r.sowCode}
+          </span>
+        </>
+      ),
+    },
+    {
+      value: "quantity",
+      text: "Số Con",
+      className: "text-center font-bold",
+    },
+    {
+      value: "soldHeads",
+      text: "Con Đã Bán",
+      className: "text-center font-bold",
+    },
+    {
+      value: "revenue",
+      text: "Doanh Thu",
+      className: "text-success text-right font-semibold",
+      render: (r) => money(r.revenue),
+    },
+    {
+      value: "healthCost",
       text: "Chi Phí Thuốc / Vaccine",
       className: "text-danger text-right",
       render: (r) => money(r.healthCost),
     },
     {
+      value: "feedCost",
+      text: "Chi Phí Cám",
+      className: "text-danger text-right",
+      render: (r) => money(r.feedCost),
+    },
+    {
       value: "net",
-      text: "Doanh Thu Trừ Chi Phí Trực Tiếp",
+      text: "Doanh Thu Trừ Chi Phí Đàn",
       className: "text-right font-black",
       render: (r) => <span className={tone(r.net)}>{money(r.net)}</span>,
     },
@@ -307,25 +391,56 @@ function ProfitContent() {
             />
           </div>
 
-          <div className="card overflow-hidden">
-            <div className="border-line-soft border-b p-4">
-              <h3 className="text-fg text-sm font-bold">
-                Hiệu quả theo từng heo nái
-              </h3>
-              <p className="text-fg-muted mt-1 text-xs">
-                Doanh thu tính từ các phiếu bán của đàn con do nái sinh ra. Chi
-                phí chỉ gồm thuốc / vaccine ghi trực tiếp cho nái và đàn con;
-                cám, điện, nước, nhân công dùng chung nên không phân bổ cho từng
-                nái.
-              </p>
+          <Tabs
+            tabs={[
+              { value: "sows", label: `Heo nái (${sowRows.length})` },
+              { value: "piglets", label: `Heo con (${batchRows.length})` },
+            ]}
+            value={tab}
+            onChange={setTab}
+          />
+
+          {tab === "sows" ? (
+            <div className="card overflow-hidden">
+              <div className="border-line-soft border-b p-4">
+                <h3 className="text-fg text-sm font-bold">
+                  Hiệu quả theo từng heo nái
+                </h3>
+                <p className="text-fg-muted mt-1 text-xs">
+                  Doanh thu tính từ các phiếu bán của đàn con do nái sinh ra.
+                  Chi phí gồm thuốc / vaccine ghi trực tiếp cho nái và cám ghi
+                  theo chuồng (chia đều cho các nái cùng chuồng); chi phí của
+                  đàn con xem ở tab Heo con. Điện, nước, nhân công dùng chung
+                  nên không phân bổ cho từng nái.
+                </p>
+              </div>
+              <Table
+                columns={sowColumns}
+                rows={sowRows}
+                height="max-h-130"
+                emptyMessage="Chưa có heo nái nào."
+              />
             </div>
-            <Table
-              columns={sowColumns}
-              rows={sowRows}
-              height="max-h-130"
-              emptyMessage="Chưa có heo nái nào."
-            />
-          </div>
+          ) : (
+            <div className="card overflow-hidden">
+              <div className="border-line-soft border-b p-4">
+                <h3 className="text-fg text-sm font-bold">
+                  Hiệu quả theo từng đàn heo con
+                </h3>
+                <p className="text-fg-muted mt-1 text-xs">
+                  Doanh thu từ các phiếu bán của đàn. Chi phí gồm thuốc /
+                  vaccine và cám ghi trực tiếp cho đàn; điện, nước, nhân công
+                  dùng chung nên không phân bổ.
+                </p>
+              </div>
+              <Table
+                columns={batchColumns}
+                rows={batchRows}
+                height="max-h-130"
+                emptyMessage="Chưa có đàn heo con nào."
+              />
+            </div>
+          )}
         </>
       )}
     </div>

@@ -1,14 +1,17 @@
 "use client";
 
+import { useRef } from "react";
+
 import { InputField, SelectField } from "@/components/form";
 import { Button, FormAlert } from "@/components/ui";
+import { NEW_BUYER } from "@/constants/buyer";
 import { AUTO_PEN, HOLDING_PEN_SPARE } from "@/constants/pen";
 import { MIN_SALE_AGE_MONTHS } from "@/constants/piglet";
 import { useForm, useFormSubmit } from "@/hooks";
 import {
   saleFormSchema,
   type SaleFormValues,
-  type SalePayload,
+  type SaleFormPayload,
 } from "@/schemas/saleSchema";
 import type { Pen } from "@/types/pen";
 import type { PigletBatch } from "@/types/piglet";
@@ -24,7 +27,7 @@ interface SaleFormModalProps {
   batches: PigletBatch[];
   buyers: Buyer[];
   pens: Pen[];
-  onSubmit: (payload: SalePayload) => Promise<void>;
+  onSubmit: (payload: SaleFormPayload) => Promise<void>;
   onClose: () => void;
 }
 
@@ -38,6 +41,8 @@ function toFormValues(sale: Sale | null): SaleFormValues {
       batch_id: "",
       pen_id: AUTO_PEN,
       buyer_id: "",
+      buyer_name: "",
+      buyer_phone: "",
       quantity: "",
       total_weight_kg: "",
       price_per_kg: "",
@@ -49,6 +54,8 @@ function toFormValues(sale: Sale | null): SaleFormValues {
     batch_id: String(sale.batch_id),
     pen_id: "",
     buyer_id: sale.buyer_id != null ? String(sale.buyer_id) : "",
+    buyer_name: "",
+    buyer_phone: "",
     quantity: String(sale.quantity),
     total_weight_kg: num(sale.total_weight_kg),
     price_per_kg: num(sale.price_per_kg),
@@ -85,11 +92,15 @@ export function SaleFormModal({
   onSubmit,
   onClose,
 }: SaleFormModalProps) {
+  const buyerNameRef = useRef<HTMLInputElement>(null);
   const { formData, handleChange } = useForm<SaleFormValues>(
     toFormValues(sale),
     {
       // Đổi đàn hoặc số lượng mà chuồng đang chọn hết đủ chỗ -> quay về tự tạo chuồng chờ bán mới
       customHandlers: {
+        // Chọn "Nhập tay": xóa tên / số điện thoại cũ để nhập người mua mới
+        buyer_id: (value) =>
+          value === NEW_BUYER ? { buyer_name: "", buyer_phone: "" } : {},
         // Đổi ngày bán mà đàn đang chọn không còn đủ điều kiện bán vào ngày đó -> bỏ chọn đàn
         sale_date: (value, prev) => {
           const batch = batches.find((b) => String(b.id) === prev.batch_id);
@@ -134,12 +145,22 @@ export function SaleFormModal({
     label: `${b.code} (${b.quantity != null ? `${b.quantity} con` : "chưa ghi số lượng"})`,
     value: String(b.id),
   }));
+  const handleBuyerChange = (e: {
+    target: { name?: string; value: string };
+  }) => {
+    handleChange(e);
+    // Đưa con trỏ vào ô tên để gõ ngay
+    if (e.target.value === NEW_BUYER) {
+      setTimeout(() => buyerNameRef.current?.focus(), 0);
+    }
+  };
   const buyerOptions = [
     { label: "— Không chọn —", value: "" },
     ...buyers.map((b) => ({
       label: b.phone ? `${b.name} (${b.phone})` : b.name,
       value: String(b.id),
     })),
+    { label: "+ Nhập tay (người mua mới)", value: NEW_BUYER },
   ];
 
   const selectedBatch = batches.find((b) => String(b.id) === formData.batch_id);
@@ -229,11 +250,41 @@ export function SaleFormModal({
             label="Người mua / thương lái"
             options={buyerOptions}
             value={formData.buyer_id}
-            onChange={handleChange}
+            onChange={handleBuyerChange}
             error={errors.buyer_id}
             size="sm"
           />
         </div>
+
+        {formData.buyer_id === NEW_BUYER && (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-3">
+            <InputField
+              ref={buyerNameRef}
+              id="buyer_name"
+              name="buyer_name"
+              label="Tên người mua mới *"
+              placeholder="Ví dụ: Anh Hùng - lái Biên Hòa"
+              value={formData.buyer_name}
+              onChange={handleChange}
+              error={errors.buyer_name}
+              size="sm"
+            />
+            <InputField
+              id="buyer_phone"
+              name="buyer_phone"
+              type="tel"
+              label="Số điện thoại"
+              value={formData.buyer_phone}
+              onChange={handleChange}
+              error={errors.buyer_phone}
+              size="sm"
+            />
+            <p className="text-fg-muted text-xs sm:col-span-2">
+              Người mua mới sẽ được lưu vào danh sách người mua; nếu tên đã có
+              trong danh sách thì dùng lại người đó.
+            </p>
+          </div>
+        )}
 
         {!sale && (
           <p

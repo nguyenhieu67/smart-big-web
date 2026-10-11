@@ -68,9 +68,9 @@ export function MatingFormModal({
     onSubmit,
   });
 
-  // Nái đã loại thải không phối được (API trả 409 SOW_CULLED)
+  // Nái đã loại thải (API trả 409 SOW_CULLED) hoặc đang mang thai (409 SOW_PREGNANT) không phối được
   const sowOptions = sows
-    .filter((s) => s.status !== "CULLED")
+    .filter((s) => s.status !== "CULLED" && s.status !== "PREGNANT")
     .map((s) => {
       const status = SOW_STATUS_OPTIONS.find((o) => o.value === s.status);
       return {
@@ -82,6 +82,22 @@ export function MatingFormModal({
     label: `${b.code} - ${b.breed}`,
     value: String(b.id),
   }));
+
+  // Ô kết quả chỉ hiện khi lần phối chưa chốt (mới phối) hoặc không đậu (để phối lại). Dựa trên giá trị
+  // đã lưu, không dựa trên form, để chọn xong ô không biến mất. Đã đậu thì chốt, không hiện ô nữa.
+  // Mới phối: chọn đậu / không đậu. Không đậu: giữ nguyên hoặc "Phối lại" (quay về mới phối)
+  const resultOptions = MATING_RESULT_OPTIONS.filter(({ value }) =>
+    mating?.result === "FAILED"
+      ? value !== "SUCCESSFULLY"
+      : value !== "RECENTLY_MATED",
+  ).map(({ value, label }) => ({
+    value,
+    label: value === "RECENTLY_MATED" ? "Phối lại" : label,
+  }));
+  // Đang mới phối: chỉ được chỉnh kết quả, các trường còn lại khoá (nái luôn khoá khi sửa)
+  const lockOthers = mating?.result === "RECENTLY_MATED";
+  const showResult =
+    mating?.result === "RECENTLY_MATED" || mating?.result === "FAILED";
 
   // Server tự tính ngày dự kiến sinh; đây chỉ là bản xem trước
   const expected = /^\d{4}-\d{2}-\d{2}$/.test(formData.mating_date)
@@ -128,6 +144,7 @@ export function MatingFormModal({
             value={formData.boar_id}
             onChange={handleChange}
             error={errors.boar_id}
+            disabled={lockOthers}
             size="sm"
           />
         </div>
@@ -142,6 +159,7 @@ export function MatingFormModal({
             value={formData.heat_date}
             onChange={handleChange}
             error={errors.heat_date}
+            disabled={lockOthers}
             size="sm"
           />
           <InputField
@@ -149,11 +167,11 @@ export function MatingFormModal({
             name="mating_date"
             type="date"
             min={formData.heat_date || undefined}
-            max={toLocalDateString()}
             label="Ngày phối *"
             value={formData.mating_date}
             onChange={handleChange}
             error={errors.mating_date}
+            disabled={lockOthers}
             size="sm"
           />
         </div>
@@ -170,21 +188,22 @@ export function MatingFormModal({
             value={formData.mating_count}
             onChange={handleChange}
             error={errors.mating_count}
+            disabled={lockOthers}
             size="sm"
           />
-          <SelectField
-            id="result"
-            name="result"
-            label="Kết quả phối"
-            options={MATING_RESULT_OPTIONS.map(({ value, label }) => ({
-              value,
-              label,
-            }))}
-            value={formData.result}
-            onChange={handleChange}
-            error={errors.result}
-            size="sm"
-          />
+          {showResult && (
+            <SelectField
+              id="result"
+              name="result"
+              label="Kết quả phối"
+              options={resultOptions}
+              placeholder="Chưa có kết quả (mới phối)"
+              value={formData.result}
+              onChange={handleChange}
+              error={errors.result}
+              size="sm"
+            />
+          )}
         </div>
 
         {expected && (

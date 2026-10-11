@@ -1,5 +1,7 @@
 "use client";
 
+import { useRef } from "react";
+
 import { InputField, SelectField } from "@/components/form";
 import { Button, FormAlert } from "@/components/ui";
 import {
@@ -14,14 +16,19 @@ import {
   type HealthLogPayload,
 } from "@/schemas/healthLogSchema";
 import type { HealthLog } from "@/types/healthLog";
+import type { PigletBatch } from "@/types/piglet";
 import type { Sow } from "@/types/sow";
-import { toInputDate, toLocalDateString } from "@/utils/format";
+import type { VaccineType } from "@/types/vaccine";
+import { formatCurrency, toInputDate, toLocalDateString } from "@/utils/format";
 
 import { Modal } from "./modal";
 
 interface HealthLogFormModalProps {
   log: HealthLog | null; // null = thêm mới
+  target: "sow" | "batch"; // thêm mới cho nái hay cho đàn heo con (khi sửa lấy theo bản ghi)
   sows: Sow[];
+  batches: PigletBatch[];
+  vaccineTypes: VaccineType[];
   onSubmit: (payload: HealthLogPayload) => Promise<void>;
   onClose: () => void;
 }
@@ -32,6 +39,8 @@ function toFormValues(log: HealthLog | null): HealthLogFormValues {
       log_date: toLocalDateString(),
       category: "VACCINATION",
       sow_id: "",
+      batch_id: "",
+      vaccine_type_id: "",
       name: "",
       dose: "",
       status: "COMPLETED",
@@ -43,6 +52,9 @@ function toFormValues(log: HealthLog | null): HealthLogFormValues {
     log_date: toInputDate(log.log_date),
     category: log.category,
     sow_id: log.sow_id != null ? String(log.sow_id) : "",
+    batch_id: log.batch_id != null ? String(log.batch_id) : "",
+    vaccine_type_id:
+      log.vaccine_type_id != null ? String(log.vaccine_type_id) : "",
     name: log.name,
     dose: log.dose ?? "",
     status: log.status,
@@ -54,13 +66,71 @@ function toFormValues(log: HealthLog | null): HealthLogFormValues {
 // Parent render modal này có `key` theo từng bản ghi nên state luôn khởi tạo mới mỗi lần mở
 export function HealthLogFormModal({
   log,
+  target,
   sows,
+  batches,
+  vaccineTypes,
   onSubmit,
   onClose,
 }: HealthLogFormModalProps) {
-  const { formData, handleChange } = useForm<HealthLogFormValues>(
+  // Chi phí vaccine trong danh mục tính theo con: nhật ký của đàn nhân với số con của đàn, của nái là 1 con
+  const headsOf = (batchId: string) =>
+    batchId
+      ? (batches.find((b) => String(b.id) === batchId)?.quantity ?? 1)
+      : 1;
+  const totalCost = (vaccine: VaccineType | undefined, batchId: string) =>
+    vaccine?.default_cost != null
+      ? String(
+          Math.round(Number(vaccine.default_cost) * headsOf(batchId) * 100) /
+            100,
+        )
+      : null;
+
+  const { formData, handleChange, setFormData } = useForm<HealthLogFormValues>(
     toFormValues(log),
+    {
+      // Đổi đàn khi đã chọn vaccine từ danh mục -> tính lại chi phí theo số con của đàn mới
+      customHandlers: {
+        batch_id: (value, prev) => {
+          const vaccine = vaccineTypes.find(
+            (v) => String(v.id) === prev.vaccine_type_id,
+          );
+          const cost = totalCost(vaccine, String(value));
+          return cost != null ? { cost } : {};
+        },
+      },
+    },
   );
+  const nameRef = useRef<HTMLInputElement>(null);
+  const selectedVaccine = vaccineTypes.find(
+    (v) => String(v.id) === formData.vaccine_type_id,
+  );
+
+  // Chọn vaccine từ danh mục thì điền sẵn tên, liều và chi phí mặc định (vẫn sửa được)
+  const handleVaccineChange = (e: {
+    target: { name?: string; value: string };
+  }) => {
+    const vaccine = vaccineTypes.find((v) => String(v.id) === e.target.value);
+    if (!vaccine) {
+      // Chọn "Nhập tay": xóa tên thuốc đang điền sẵn và đưa con trỏ vào ô tên để gõ
+      setFormData((prev) => ({ ...prev, vaccine_type_id: "", name: "" }));
+      setTimeout(() => nameRef.current?.focus(), 0);
+      return;
+    }
+    setFormData((prev) => ({
+      ...prev,
+      vaccine_type_id: e.target.value,
+      ...(vaccine
+        ? {
+            name: vaccine.name,
+            dose: vaccine.dose ?? prev.dose,
+            cost: totalCost(vaccine, prev.batch_id) ?? prev.cost,
+            category: "VACCINATION" as const,
+          }
+        : {}),
+    }));
+  };
+
   const { errors, formError, submitting, handleSubmit } = useFormSubmit({
     schema: log ? healthLogUpdateSchema : healthLogCreateSchema,
     values: formData,
@@ -68,8 +138,17 @@ export function HealthLogFormModal({
   });
 
   const sowOptions = sows.map((s) => ({ label: s.code, value: String(s.id) }));
+  const batchOptions = batches
+    .filter((b) => b.stage !== "SOLD")
+    .map((b) => ({ label: b.code, value: String(b.id) }));
   // API không cho đổi đối tượng (nái / đàn) của một bản ghi sức khỏe
-  const targetLabel = log ? (log.sow ? "Nái" : "Đàn") : "Chọn nái *";
+  const targetLabel = log
+    ? log.sow
+      ? "Nái"
+      : "Đàn"
+    : target === "batch"
+      ? "Chọn đàn heo con *"
+      : "Chọn nái *";
   const targetValue = log ? (log.sow?.code ?? log.pigletBatch?.code ?? "") : "";
 
   return (
@@ -116,6 +195,18 @@ export function HealthLogFormModal({
             readOnly
             size="sm"
           />
+        ) : target === "batch" ? (
+          <SelectField
+            id="batch_id"
+            name="batch_id"
+            label={targetLabel}
+            placeholder="Chọn đàn heo con"
+            options={batchOptions}
+            value={formData.batch_id}
+            onChange={handleChange}
+            error={errors.batch_id ?? errors.sow_id}
+            size="sm"
+          />
         ) : (
           <SelectField
             id="sow_id"
@@ -130,8 +221,29 @@ export function HealthLogFormModal({
           />
         )}
 
+        {vaccineTypes.length > 0 && (
+          <SelectField
+            id="vaccine_type_id"
+            name="vaccine_type_id"
+            label="Vaccine trong danh mục"
+            placeholder="Nhập tay (không chọn)"
+            options={[
+              { value: "", label: "Nhập tay (không chọn)" },
+              ...vaccineTypes.map((v) => ({
+                value: String(v.id),
+                label: v.name,
+              })),
+            ]}
+            value={formData.vaccine_type_id}
+            onChange={handleVaccineChange}
+            error={errors.vaccine_type_id}
+            size="sm"
+          />
+        )}
+
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-3">
           <InputField
+            ref={nameRef}
             id="name"
             name="name"
             label="Tên thuốc / vaccine / triệu chứng *"
@@ -178,6 +290,12 @@ export function HealthLogFormModal({
           />
         </div>
 
+        {selectedVaccine?.default_cost != null && (
+          <p className="text-fg-muted -mt-2 text-xs">
+            Chi phí mặc định {formatCurrency(selectedVaccine.default_cost, "đ")}{" "}
+            / con × {headsOf(formData.batch_id)} con (sửa được).
+          </p>
+        )}
         <p className="text-fg-muted -mt-2 text-xs">
           Nếu có chi phí, khoản chi sẽ tự ghi vào sổ chi phí (danh mục
           &quot;Thuốc / Vaccine&quot;).

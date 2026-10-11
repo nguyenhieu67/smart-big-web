@@ -37,7 +37,7 @@ export function InputField({
           aria-invalid={!!error}
           className={`block w-full ${
             icon ? "pl-10" : "px-3"
-          } bg-surface text-fg placeholder:text-fg-subtle rounded-xl border pr-3 transition-colors focus:ring-1 focus:outline-none ${SIZE_STYLES[size]} ${borderStyles} ${className}`}
+          } bg-surface text-fg placeholder:text-fg-subtle disabled:bg-surface-muted rounded-xl border pr-3 transition-colors focus:ring-1 focus:outline-none disabled:cursor-not-allowed disabled:opacity-60 ${SIZE_STYLES[size]} ${borderStyles} ${className}`}
           {...props}
         />
       </div>

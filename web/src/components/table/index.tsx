@@ -11,6 +11,7 @@ interface TableProps<T extends RowI = RowI> {
   emptyMessage?: string;
   onEdit?: (row: T) => void;
   onDelete?: (row: T) => void;
+  onRowClick?: (row: T) => void; // bấm vào dòng (không tính cột thao tác)
   page?: number;
   limit?: number;
   total?: number;
@@ -26,6 +27,7 @@ export function Table<T extends RowI = RowI>({
   emptyMessage,
   onEdit,
   onDelete,
+  onRowClick,
   page,
   limit,
   total,
@@ -51,6 +53,7 @@ export function Table<T extends RowI = RowI>({
             emptyMessage={emptyMessage}
             onEdit={onEdit}
             onDelete={onDelete}
+            onRowClick={onRowClick}
             limit={limit}
             total={total}
           />

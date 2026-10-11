@@ -3,25 +3,28 @@ import { z } from "zod";
 import { MATING_RESULT_VALUES } from "@/constants/mating";
 import { toLocalDateString } from "@/utils/format";
 
-const pastDate = (label: string) =>
+const dateRule = (label: string) =>
   z
     .string()
     .min(1, `Vui lòng chọn ${label}`)
     .refine(
       (v) => /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(v)),
       `${label[0].toUpperCase()}${label.slice(1)} không hợp lệ`,
-    )
-    .refine(
-      (v) => v <= toLocalDateString(),
-      `${label[0].toUpperCase()}${label.slice(1)} không được ở tương lai`,
     );
+
+// Ngày động dục không ở tương lai; ngày phối không giới hạn trên (chỉ cần >= ngày động dục)
+const pastDate = (label: string) =>
+  dateRule(label).refine(
+    (v) => v <= toLocalDateString(),
+    `${label[0].toUpperCase()}${label.slice(1)} không được ở tương lai`,
+  );
 
 // Form giữ mọi giá trị dạng chuỗi; tên field trùng body API để lỗi từ BE gắn đúng ô nhập
 const matingBase = z.object({
   sow_id: z.string(),
   boar_id: z.string().min(1, "Vui lòng chọn heo đực / tinh"),
   heat_date: pastDate("ngày động dục"),
-  mating_date: pastDate("ngày phối"),
+  mating_date: dateRule("ngày phối"),
   mating_count: z
     .string()
     .trim()

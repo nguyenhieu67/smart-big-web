@@ -8,6 +8,7 @@ interface TableBodyProps<T extends RowI = RowI> {
   emptyMessage?: string;
   onEdit?: (row: T) => void;
   onDelete?: (row: T) => void;
+  onRowClick?: (row: T) => void;
   limit?: number;
   total?: number;
 }
@@ -18,6 +19,7 @@ export function TableBody<T extends RowI = RowI>({
   emptyMessage = "Không có dữ liệu.",
   onEdit,
   onDelete,
+  onRowClick,
   limit,
   total,
 }: TableBodyProps<T>) {
@@ -50,6 +52,7 @@ export function TableBody<T extends RowI = RowI>({
           row={row}
           onEdit={onEdit}
           onDelete={onDelete}
+          onRowClick={onRowClick}
         />
       ))}
       {Array.from({ length: fillerCount }).map((_, index) => (

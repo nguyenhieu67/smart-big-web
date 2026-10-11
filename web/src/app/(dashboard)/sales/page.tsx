@@ -12,6 +12,7 @@ import {
 } from "@/components/modals";
 import { Table } from "@/components/table";
 import { Button, Tabs } from "@/components/ui";
+import { NEW_BUYER } from "@/constants/buyer";
 import { MIN_SALE_AGE_MONTHS } from "@/constants/piglet";
 import {
   useAppToast,
@@ -21,7 +22,7 @@ import {
   useTableActions,
 } from "@/hooks";
 import type { BuyerPayload } from "@/schemas/buyerSchema";
-import type { SalePayload } from "@/schemas/saleSchema";
+import type { SaleFormPayload, SalePayload } from "@/schemas/saleSchema";
 import { buyerService } from "@/services/buyerService";
 import { penService } from "@/services/penService";
 import { pigletBatchService } from "@/services/pigletBatchService";
@@ -117,7 +118,28 @@ function SalesContent({ farm }: { farm: Farm }) {
     saleActions.openCreate();
   };
 
-  async function handleSubmitSale(payload: SalePayload) {
+  // Người mua nhập tay: tên đã có trong danh sách thì dùng lại, chưa có thì lưu thành người mua mới
+  async function resolveBuyer(input: SaleFormPayload): Promise<SalePayload> {
+    const { buyer_name, buyer_phone, ...rest } = input;
+    if (rest.buyer_id !== NEW_BUYER) return rest;
+
+    const name = (buyer_name ?? "").trim();
+    const existing = buyers.find(
+      (b) => b.name.trim().toLowerCase() === name.toLowerCase(),
+    );
+    if (existing) return { ...rest, buyer_id: String(existing.id) };
+
+    const created = await buyerService.create({
+      name,
+      phone: buyer_phone,
+      note: undefined,
+    });
+    toast.success(`Đã thêm "${created.name}" vào danh sách người mua`);
+    return { ...rest, buyer_id: String(created.id) };
+  }
+
+  async function handleSubmitSale(input: SaleFormPayload) {
+    const payload = await resolveBuyer(input);
     if (saleActions.selectedItem) {
       await saleService.update(saleActions.selectedItem.id, payload);
       toast.success("Đã cập nhật phiếu bán");

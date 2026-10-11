@@ -79,17 +79,22 @@ function GestationContent() {
             .sort((a, b) => b.mating_date.localeCompare(a.mating_date))[0] ??
           null;
 
-        const daysPregnant = mating
-          ? Math.round(
-              (today - Date.parse(toInputDate(mating.mating_date))) / DAY_MS,
-            )
-          : null;
-        const daysLeft = mating
-          ? Math.round(
-              (Date.parse(toInputDate(mating.expected_farrow_date)) - today) /
-                DAY_MS,
-            )
-          : null;
+        // Chỉ bắt đầu tính ngày thai khi lần phối đã được xác nhận "đã đậu thai"
+        const confirmed = mating?.result === "SUCCESSFULLY";
+
+        const daysPregnant =
+          mating && confirmed
+            ? Math.round(
+                (today - Date.parse(toInputDate(mating.mating_date))) / DAY_MS,
+              )
+            : null;
+        const daysLeft =
+          mating && confirmed
+            ? Math.round(
+                (Date.parse(toInputDate(mating.expected_farrow_date)) - today) /
+                  DAY_MS,
+              )
+            : null;
 
         // Vaccine: chỉ tính các lần tiêm từ ngày phối (thai kỳ hiện tại); chưa có lần phối thì lấy mọi lần
         const vaccine = latestBy(
@@ -183,6 +188,8 @@ function GestationContent() {
                         )
                       : 0;
                   const soon = daysLeft != null && daysLeft <= SOON_DAYS;
+                  // Chỉ ghi nhận ca sinh khi đã đậu thai và gần tới (hoặc quá) ngày dự kiến sinh
+                  const canFarrow = soon;
 
                   return (
                     <div key={sow.id} className="card space-y-3 p-5">
@@ -195,29 +202,37 @@ function GestationContent() {
                             {sow.breed} (Lứa {sow.parity_count + 1})
                           </h4>
                         </div>
-                        {daysPregnant != null && (
+                        {daysPregnant != null ? (
                           <span className="badge badge-indigo shrink-0">
                             Ngày thai: {daysPregnant}/{GESTATION_DAYS}
                           </span>
+                        ) : (
+                          mating && (
+                            <span className="badge badge-warning shrink-0">
+                              Chờ xác nhận đậu thai
+                            </span>
+                          )
                         )}
                       </div>
 
-                      <div>
-                        <div className="text-fg-muted mb-1 flex justify-between text-[11px]">
-                          <span>Tiến trình mang thai</span>
-                          <span
-                            className={`font-bold ${soon ? "text-danger" : "text-indigo"}`}
-                          >
-                            {percent}%
-                          </span>
+                      {daysPregnant != null && (
+                        <div>
+                          <div className="text-fg-muted mb-1 flex justify-between text-[11px]">
+                            <span>Tiến trình mang thai</span>
+                            <span
+                              className={`font-bold ${soon ? "text-danger" : "text-indigo"}`}
+                            >
+                              {percent}%
+                            </span>
+                          </div>
+                          <div className="bg-surface-hover h-2 w-full overflow-hidden rounded-full">
+                            <div
+                              className={`h-2 rounded-full transition-all ${soon ? "bg-danger" : "bg-indigo"}`}
+                              style={{ width: `${percent}%` }}
+                            />
+                          </div>
                         </div>
-                        <div className="bg-surface-hover h-2 w-full overflow-hidden rounded-full">
-                          <div
-                            className={`h-2 rounded-full transition-all ${soon ? "bg-danger" : "bg-indigo"}`}
-                            style={{ width: `${percent}%` }}
-                          />
-                        </div>
-                      </div>
+                      )}
 
                       <div className="bg-surface-muted text-fg-body space-y-1 rounded-xl p-3 text-xs">
                         <div className="flex justify-between gap-2">
@@ -271,8 +286,16 @@ function GestationContent() {
                         </p>
                       )}
 
+                      {daysLeft != null && !canFarrow && (
+                        <p className="text-fg-muted text-[11px]">
+                          Còn {daysLeft} ngày nữa mới đến ngày dự kiến sinh. Chỉ
+                          ghi nhận ca sinh khi còn không quá {SOON_DAYS} ngày.
+                        </p>
+                      )}
+
                       <Button
-                        href="/farrowings"
+                        href={`/farrowings?sow=${sow.id}`}
+                        disabled={!canFarrow}
                         fullWidth
                         leftIcon={<HeartPulseIcon size="xs" />}
                         className="bg-danger rounded-xl text-xs font-semibold"

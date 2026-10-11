@@ -97,11 +97,15 @@ function MatingsContent({ farm }: { farm: Farm }) {
     currentPage * limit,
   );
 
-  // Phối giống cần có nái (chưa loại thải) và heo đực/tinh trước
+  // Phối giống cần có nái (chưa loại thải, không đang mang thai) và heo đực/tinh trước
   const handleCreateMating = () => {
-    if (!sows.some((s) => s.status !== "CULLED")) {
+    if (sows.length === 0 || sows.every((s) => s.status === "CULLED")) {
       toast.warning("Bạn cần thêm nái trước khi ghi nhận phối giống");
       router.push("/sows");
+      return;
+    }
+    if (!sows.some((s) => s.status !== "CULLED" && s.status !== "PREGNANT")) {
+      toast.warning("Hiện không có nái nào có thể phối (đang mang thai)");
       return;
     }
     if (boars.length === 0) {

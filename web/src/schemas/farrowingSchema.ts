@@ -29,7 +29,10 @@ const farrowingBase = z.object({
       (v) => /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(v)),
       "Ngày đẻ không hợp lệ",
     )
-    .refine((v) => v <= toLocalDateString(), "Ngày đẻ không được ở tương lai"),
+    .refine(
+      (v) => v <= toLocalDateString(),
+      "Ngày sinh không được ở tương lai. Chỉ ghi nhận ca sinh khi nái đã đẻ, hãy chọn ngày sinh thực tế (từ hôm nay trở về trước)",
+    ),
   live_born: count("số con sống", true),
   dead_born: count("số con chết", false),
   weak_born: count("số con yếu", false),

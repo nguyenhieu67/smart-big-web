@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { NEW_BUYER } from "@/constants/buyer";
 import { AUTO_PEN } from "@/constants/pen";
 import { toLocalDateString } from "@/utils/format";
 
@@ -38,6 +39,18 @@ const saleBase = z.object({
   batch_id: z.string().min(1, "Vui lòng chọn đàn bán"),
   pen_id: z.string(),
   buyer_id: z.string().transform((v) => v || undefined),
+  // Nhập tay người mua mới (buyer_id = NEW_BUYER): trang bán heo kiểm tra trùng tên hoặc lưu vào danh sách rồi thay bằng id
+  buyer_name: z
+    .string()
+    .trim()
+    .max(150, "Tên tối đa 150 ký tự")
+    .transform((v) => v || undefined),
+  buyer_phone: z
+    .string()
+    .trim()
+    .max(20, "Số điện thoại tối đa 20 ký tự")
+    .refine((v) => /^[0-9+\s().-]*$/.test(v), "Số điện thoại không hợp lệ")
+    .transform((v) => v || undefined),
   quantity: z
     .string()
     .trim()
@@ -69,10 +82,16 @@ export const saleFormSchema = saleBase
     message: "Ngày vận chuyển phải sau hoặc bằng ngày bán",
     path: ["shipping_date"],
   })
+  .refine((d) => d.buyer_id !== NEW_BUYER || !!d.buyer_name, {
+    message: "Vui lòng nhập tên người mua",
+    path: ["buyer_name"],
+  })
   .transform(({ pen_id, ...rest }): SaleBody => {
     if (pen_id === AUTO_PEN) return { ...rest, create_pen: true };
     return pen_id ? { ...rest, pen_id } : rest;
   });
 
 export type SaleFormValues = z.input<typeof saleFormSchema>;
-export type SalePayload = SaleBody;
+// Dữ liệu form (còn tên / SĐT người mua nhập tay) và body gửi API (đã thay bằng buyer_id)
+export type SaleFormPayload = SaleBody;
+export type SalePayload = Omit<SaleBody, "buyer_name" | "buyer_phone">;

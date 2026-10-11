@@ -6,6 +6,7 @@ interface TableRowProps<T extends RowI = RowI> {
   row: T;
   onEdit?: (row: T) => void;
   onDelete?: (row: T) => void;
+  onRowClick?: (row: T) => void;
 }
 
 export function TableRow<T extends RowI = RowI>({
@@ -13,13 +14,21 @@ export function TableRow<T extends RowI = RowI>({
   row,
   onEdit,
   onDelete,
+  onRowClick,
 }: TableRowProps<T>) {
   return (
-    <tr className="text-fg-body hover:bg-surface-muted transition">
+    <tr
+      className={`text-fg-body hover:bg-surface-muted transition ${onRowClick ? "cursor-pointer" : ""}`}
+      onClick={onRowClick ? () => onRowClick(row) : undefined}
+    >
       {columns.map((column) => {
         if (column.value === "actions") {
           return (
-            <td key={column.value} className="p-3.5 whitespace-nowrap">
+            <td
+              key={column.value}
+              className="p-3.5 whitespace-nowrap"
+              onClick={(e) => e.stopPropagation()}
+            >
               <div className="flex items-center gap-1">
                 {onEdit && (
                   <button

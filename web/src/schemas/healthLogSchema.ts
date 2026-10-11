@@ -18,6 +18,8 @@ const healthLogBase = z.object({
     .refine((v) => v <= toLocalDateString(), "Ngày không được ở tương lai"),
   category: z.enum(HEALTH_CATEGORY_VALUES, "Vui lòng chọn phân loại"),
   sow_id: z.string(),
+  batch_id: z.string(),
+  vaccine_type_id: z.string(), // vaccine chọn từ danh mục, trống = nhập tay
   name: z
     .string()
     .trim()
@@ -55,15 +57,29 @@ const nextAfterLog = {
   },
 };
 
-// Sửa: không đổi đối tượng nên sow_id có thể trống (bản ghi của đàn heo con, API cũng bỏ qua sow_id khi PATCH)
-export const healthLogUpdateSchema = healthLogBase.refine(
-  nextAfterLog.check,
-  nextAfterLog.params,
-);
+// Bỏ các id trống khỏi body gửi API (API ép chuỗi rỗng thành id 0 và báo lỗi)
+const pickIds = <T extends { vaccine_type_id: string }>({
+  vaccine_type_id,
+  ...rest
+}: T) => ({ ...rest, ...(vaccine_type_id ? { vaccine_type_id } : {}) });
 
+// Sửa: không đổi đối tượng nên sow_id / batch_id bỏ qua (API cũng bỏ qua khi PATCH)
+export const healthLogUpdateSchema = healthLogBase
+  .refine(nextAfterLog.check, nextAfterLog.params)
+  .transform(pickIds);
+
+// Thêm mới: chọn đúng một đối tượng (nái hoặc đàn heo con); trường còn lại bỏ khỏi body gửi API
 export const healthLogCreateSchema = healthLogBase
-  .extend({ sow_id: z.string().min(1, "Vui lòng chọn nái") })
-  .refine(nextAfterLog.check, nextAfterLog.params);
+  .refine(nextAfterLog.check, nextAfterLog.params)
+  .refine((d) => d.sow_id !== "" || d.batch_id !== "", {
+    message: "Vui lòng chọn nái hoặc đàn heo con",
+    path: ["sow_id"],
+  })
+  .transform(({ sow_id, batch_id, ...rest }) => ({
+    ...pickIds(rest),
+    ...(sow_id ? { sow_id } : {}),
+    ...(batch_id ? { batch_id } : {}),
+  }));
 
 export type HealthLogFormValues = z.input<typeof healthLogCreateSchema>;
 export type HealthLogPayload = z.output<typeof healthLogCreateSchema>;

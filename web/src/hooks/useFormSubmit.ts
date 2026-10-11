@@ -43,7 +43,9 @@ export function useFormSubmit<TOut>({
       } else {
         const { message, fields } = parseApiError(err);
         setErrors(fields);
-        setFormError(message);
+        // Có lỗi theo field thì banner nêu rõ nội dung thay vì "Dữ liệu không hợp lệ" chung chung
+        const details = Object.values(fields);
+        setFormError(details.length ? details.join(". ") : message);
       }
       setSubmitting(false);
     }

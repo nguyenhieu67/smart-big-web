@@ -8,6 +8,7 @@ import {
   DnaIcon,
   HeartPulseIcon,
   MoneyBillTrendUpIcon,
+  NotesMedicalIcon,
   PawIcon,
   PiggyBankIcon,
   ArrowsSpinIcon,
@@ -47,6 +48,12 @@ export const NAV_GROUPS: NavGroup[] = [
         icon: ArrowsSpinIcon,
         iconColor: "text-cyan-400",
       },
+      {
+        label: "Quy Trình Vaccine Heo Con",
+        href: "/vaccine-schedule",
+        icon: SyringeIcon,
+        iconColor: "text-lime-400",
+      },
     ],
   },
   {
@@ -81,6 +88,12 @@ export const NAV_GROUPS: NavGroup[] = [
         href: "/piglets",
         icon: PawIcon,
         iconColor: "text-amber-400",
+      },
+      {
+        label: "Theo Dõi Tiêm Vaccine Heo Con",
+        href: "/piglet-care",
+        icon: NotesMedicalIcon,
+        iconColor: "text-orange-400",
       },
     ],
   },

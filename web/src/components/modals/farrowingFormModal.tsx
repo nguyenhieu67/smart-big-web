@@ -1,5 +1,7 @@
 "use client";
 
+import { useMemo } from "react";
+
 import { InputField, SelectField } from "@/components/form";
 import { Button, FormAlert } from "@/components/ui";
 import { AUTO_PEN, FARROWING_PEN_SPARE } from "@/constants/pen";
@@ -11,29 +13,58 @@ import {
   type FarrowingPayload,
 } from "@/schemas/farrowingSchema";
 import type { Farrowing } from "@/types/farrowing";
+import type { Mating } from "@/types/mating";
 import type { Pen } from "@/types/pen";
 import type { Sow } from "@/types/sow";
-import { toInputDate, toLocalDateString } from "@/utils/format";
+import {
+  addDaysToDate,
+  formatDate,
+  toInputDate,
+  toLocalDateString,
+} from "@/utils/format";
 import { penOccupied } from "@/utils/pen";
 
 import { Modal } from "./modal";
 
 interface FarrowingFormModalProps {
   farrowing: Farrowing | null; // null = thêm mới
+  initialSowId?: string; // chọn sẵn nái khi thêm mới (vd đi từ trang thai kỳ sang)
   sows: Sow[];
   pens: Pen[];
+  matings: Mating[];
   onSubmit: (payload: FarrowingPayload) => Promise<void>;
   onClose: () => void;
 }
 
+const FARROW_WINDOW_DAYS = 30; // ngày sinh được lệch tối đa 1 tháng so với ngày dự kiến
+
+// Ngày dự kiến sinh (yyyy-mm-dd) của nái: lần phối gần nhất chưa bị "không đậu" (giống cách API chọn lần phối)
+function expectedFarrowDate(matings: Mating[], sowId: string) {
+  const mating = matings
+    .filter((m) => String(m.sow_id) === sowId && m.result !== "FAILED")
+    .sort((a, b) => b.mating_date.localeCompare(a.mating_date))[0];
+  return mating ? toInputDate(mating.expected_farrow_date) : null;
+}
+
+// Ngày sinh mặc định: ngày dự kiến sinh; chưa đến ngày đó thì lấy hôm nay (API không nhận ngày ở tương lai)
+function defaultFarrowDate(matings: Mating[], sowId: string) {
+  const today = toLocalDateString();
+  const expected = expectedFarrowDate(matings, sowId);
+  return expected && expected <= today ? expected : today;
+}
+
 const num = (v: number | null | undefined) => (v == null ? "0" : String(v));
 
-function toFormValues(farrowing: Farrowing | null): FarrowingFormValues {
+function toFormValues(
+  farrowing: Farrowing | null,
+  initialSowId: string,
+  matings: Mating[],
+): FarrowingFormValues {
   if (!farrowing) {
     return {
-      sow_id: "",
+      sow_id: initialSowId,
       pen_id: AUTO_PEN,
-      farrow_date: toLocalDateString(),
+      farrow_date: defaultFarrowDate(matings, initialSowId),
       live_born: "",
       dead_born: "0",
       weak_born: "0",
@@ -84,18 +115,22 @@ function selectedPenFits(
 // Parent render modal này có `key` theo từng bản ghi nên state luôn khởi tạo mới mỗi lần mở
 export function FarrowingFormModal({
   farrowing,
+  initialSowId,
   sows,
   pens,
+  matings,
   onSubmit,
   onClose,
 }: FarrowingFormModalProps) {
   const { formData, handleChange } = useForm<FarrowingFormValues>(
-    toFormValues(farrowing),
+    toFormValues(farrowing, initialSowId ?? "", matings),
     {
       // Đổi nái hoặc số con sống mà chuồng đang chọn hết đủ chỗ -> quay về tự tạo chuồng đẻ mới
       customHandlers: {
-        sow_id: (value, prev) =>
-          selectedPenFits(
+        sow_id: (value, prev) => ({
+          // Đổi nái -> ngày sinh nhảy về ngày dự kiến của nái đó
+          farrow_date: defaultFarrowDate(matings, String(value)),
+          ...(selectedPenFits(
             pens,
             sows,
             prev.pen_id,
@@ -103,7 +138,8 @@ export function FarrowingFormModal({
             Number(prev.live_born) || 0,
           )
             ? {}
-            : { pen_id: AUTO_PEN },
+            : { pen_id: AUTO_PEN }),
+        }),
         live_born: (value, prev) =>
           selectedPenFits(
             pens,
@@ -117,8 +153,41 @@ export function FarrowingFormModal({
       },
     },
   );
+  // Thêm mới: ngày sinh chỉ được trong khoảng ±1 tháng quanh ngày dự kiến của nái
+  const expected = farrowing
+    ? null
+    : expectedFarrowDate(matings, formData.sow_id);
+  const minDate = expected
+    ? addDaysToDate(expected, -FARROW_WINDOW_DAYS)
+    : undefined;
+  // Không chọn quá hôm nay vì chưa đẻ thì chưa ghi nhận được
+  const maxDate = expected
+    ? [
+        addDaysToDate(expected, FARROW_WINDOW_DAYS),
+        toLocalDateString(),
+      ].sort()[0]
+    : undefined;
+  const createSchema = useMemo(
+    () =>
+      farrowingCreateSchema.refine(
+        (d) => {
+          const exp = expectedFarrowDate(matings, d.sow_id);
+          return (
+            !exp ||
+            (d.farrow_date >= addDaysToDate(exp, -FARROW_WINDOW_DAYS) &&
+              d.farrow_date <= addDaysToDate(exp, FARROW_WINDOW_DAYS))
+          );
+        },
+        {
+          message:
+            "Ngày sinh chỉ được lệch tối đa 1 tháng so với ngày dự kiến sinh",
+          path: ["farrow_date"],
+        },
+      ),
+    [matings],
+  );
   const { errors, formError, submitting, handleSubmit } = useFormSubmit({
-    schema: farrowing ? farrowingUpdateSchema : farrowingCreateSchema,
+    schema: farrowing ? farrowingUpdateSchema : createSchema,
     values: formData,
     onSubmit,
   });
@@ -195,7 +264,8 @@ export function FarrowingFormModal({
             id="farrow_date"
             name="farrow_date"
             type="date"
-            max={toLocalDateString()}
+            min={minDate}
+            max={maxDate}
             label="Ngày sinh *"
             value={formData.farrow_date}
             onChange={handleChange}
@@ -203,6 +273,13 @@ export function FarrowingFormModal({
             size="sm"
           />
         </div>
+
+        {expected && (
+          <p className="bg-surface-muted text-fg-body rounded-lg p-2.5 text-xs">
+            Ngày dự kiến sinh:{" "}
+            <strong className="text-danger">{formatDate(expected)}</strong>
+          </p>
+        )}
 
         {!farrowing && (
           <SelectField

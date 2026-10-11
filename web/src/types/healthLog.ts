@@ -14,6 +14,9 @@ export interface HealthLog {
   next_date: string | null;
   sow_id: number | null;
   batch_id: number | null;
+  vaccine_type_id: number | null;
+  care_step: string | null; // mốc quy trình heo con đã hoàn thành
   sow: { id: number; code: string } | null;
   pigletBatch: { id: number; code: string } | null;
+  vaccineType: { id: number; name: string } | null;
 }

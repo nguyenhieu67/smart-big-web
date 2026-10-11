@@ -1,5 +1,6 @@
 import type { Expense } from "@/types/expense";
 import type { Farrowing } from "@/types/farrowing";
+import type { FeedLog } from "@/types/feed";
 import type { HealthLog } from "@/types/healthLog";
 import type { PigletBatch } from "@/types/piglet";
 import type { Sale } from "@/types/sale";
@@ -79,18 +80,21 @@ export interface SowProfitRow {
   liveBorn: number;
   soldHeads: number;
   revenue: number;
-  healthCost: number; // chi phí thuốc / vaccine ghi trực tiếp cho nái và các đàn con của nái
-  net: number; // doanh thu - chi phí trực tiếp
+  healthCost: number; // chi phí thuốc / vaccine ghi trực tiếp cho nái (không gồm đàn con)
+  feedCost: number; // cám ghi theo chuồng của nái (chia đều cho các nái cùng chuồng)
+  net: number; // doanh thu - chi phí của nái
 }
 
-// Hiệu quả theo từng nái: doanh thu từ các đàn con của nái; chi phí chỉ tính phần ghi trực tiếp cho nái / đàn con
-// (cám, điện, nước, nhân công dùng chung nên không phân bổ).
+// Hiệu quả theo từng nái: doanh thu từ các đàn con của nái; chi phí gồm thuốc / vaccine ghi cho nái và cám ghi theo chuồng
+// (không gắn đàn con) chia đều cho các nái đang ở chuồng đó. Chi phí của đàn con tách riêng ở bảng heo con (byBatch);
+// điện, nước, nhân công dùng chung nên không phân bổ.
 export function bySow(args: {
   sows: Sow[];
   batches: PigletBatch[];
   sales: Sale[];
   farrowings: Farrowing[];
   healthLogs: HealthLog[];
+  feedLogs: FeedLog[];
 }): SowProfitRow[] {
   const batchSow = new Map<number, number>();
   for (const b of args.batches) {
@@ -109,6 +113,7 @@ export function bySow(args: {
         soldHeads: 0,
         revenue: 0,
         healthCost: 0,
+        feedCost: 0,
         net: 0,
       },
     ]),
@@ -128,13 +133,83 @@ export function bySow(args: {
     row.revenue += Number(s.total_revenue);
   }
   for (const h of args.healthLogs) {
-    const sowId =
-      h.sow_id ?? (h.batch_id != null ? batchSow.get(h.batch_id) : undefined);
-    const row = sowId != null ? rows.get(sowId) : undefined;
+    const row = h.sow_id != null ? rows.get(h.sow_id) : undefined;
     if (row) row.healthCost += Number(h.cost);
   }
 
+  // Cám ghi theo chuồng (không gắn đàn con) chia đều cho các nái đang ở chuồng đó
+  const sowsByPen = new Map<number, Sow[]>();
+  for (const sow of args.sows) {
+    sowsByPen.set(sow.pen_id, [...(sowsByPen.get(sow.pen_id) ?? []), sow]);
+  }
+  for (const f of args.feedLogs) {
+    if (f.batch_id != null || f.pen_id == null) continue;
+    const inPen = sowsByPen.get(f.pen_id);
+    if (!inPen?.length) continue;
+    const share = Number(f.total_cost) / inPen.length;
+    for (const sow of inPen) {
+      const row = rows.get(sow.id);
+      if (row) row.feedCost += share;
+    }
+  }
+
   return [...rows.values()]
-    .map((r) => ({ ...r, net: r.revenue - r.healthCost }))
+    .map((r) => ({ ...r, net: r.revenue - r.healthCost - r.feedCost }))
+    .sort((a, b) => b.net - a.net);
+}
+
+export interface BatchProfitRow {
+  id: number;
+  code: string;
+  sowCode: string; // nái mẹ, "—" nếu đàn nhập từ ngoài
+  quantity: number;
+  soldHeads: number;
+  revenue: number;
+  healthCost: number; // thuốc / vaccine ghi cho đàn
+  feedCost: number; // cám ghi cho đàn
+  net: number; // doanh thu - thuốc/vaccine - cám của đàn
+}
+
+// Hiệu quả theo từng đàn heo con: doanh thu từ các phiếu bán của đàn; chi phí là thuốc / vaccine và cám ghi trực tiếp cho đàn
+export function byBatch(args: {
+  batches: PigletBatch[];
+  sales: Sale[];
+  healthLogs: HealthLog[];
+  feedLogs: FeedLog[];
+}): BatchProfitRow[] {
+  const rows = new Map<number, BatchProfitRow>(
+    args.batches.map((b) => [
+      b.id,
+      {
+        id: b.id,
+        code: b.code,
+        sowCode: b.sow?.code ?? "—",
+        quantity: b.quantity ?? 0,
+        soldHeads: 0,
+        revenue: 0,
+        healthCost: 0,
+        feedCost: 0,
+        net: 0,
+      },
+    ]),
+  );
+
+  for (const s of args.sales) {
+    const row = rows.get(s.batch_id);
+    if (!row) continue;
+    row.soldHeads += s.quantity;
+    row.revenue += Number(s.total_revenue);
+  }
+  for (const h of args.healthLogs) {
+    const row = h.batch_id != null ? rows.get(h.batch_id) : undefined;
+    if (row) row.healthCost += Number(h.cost);
+  }
+  for (const f of args.feedLogs) {
+    const row = f.batch_id != null ? rows.get(f.batch_id) : undefined;
+    if (row) row.feedCost += Number(f.total_cost);
+  }
+
+  return [...rows.values()]
+    .map((r) => ({ ...r, net: r.revenue - r.healthCost - r.feedCost }))
     .sort((a, b) => b.net - a.net);
 }

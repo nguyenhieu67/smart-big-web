@@ -1,7 +1,7 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 
 import { HeartPulseIcon, PlusIcon, SearchIcon } from "@/components/icons";
 import { FarmGate, PageHeader } from "@/components/layout";
@@ -16,11 +16,13 @@ import {
   useTableActions,
 } from "@/hooks";
 import type { FarrowingPayload } from "@/schemas/farrowingSchema";
+import { matingService } from "@/services/matingService";
 import { farrowingService } from "@/services/farrowingService";
 import { penService } from "@/services/penService";
 import { sowService } from "@/services/sowService";
 import type { Farm } from "@/types/auth";
 import type { Farrowing } from "@/types/farrowing";
+import type { Mating } from "@/types/mating";
 import type { Pen } from "@/types/pen";
 import type { Sow } from "@/types/sow";
 import type { ColumnI } from "@/types/table";
@@ -29,9 +31,14 @@ import { formatDate } from "@/utils/format";
 const EMPTY_FARROWINGS: Farrowing[] = [];
 const EMPTY_SOWS: Sow[] = [];
 const EMPTY_PENS: Pen[] = [];
+const EMPTY_MATINGS: Mating[] = [];
 
 export default function FarrowingsPage() {
-  return <FarmGate>{(farm) => <FarrowingsContent farm={farm} />}</FarmGate>;
+  return (
+    <Suspense>
+      <FarmGate>{(farm) => <FarrowingsContent farm={farm} />}</FarmGate>
+    </Suspense>
+  );
 }
 
 function FarrowingsContent({ farm }: { farm: Farm }) {
@@ -40,18 +47,25 @@ function FarrowingsContent({ farm }: { farm: Farm }) {
 
   const router = useRouter();
   const toast = useAppToast();
+  // Đi từ trang thai kỳ sang: /farrowings?sow=<id> -> mở sẵn form ghi nhận ca sinh của nái đó
+  const sowParam = useSearchParams().get("sow") ?? "";
+  // Chốt nái từ link ở lần render đầu; xóa khi đóng form để các lần thêm sau không chọn sẵn
+  const [initialSowId, setInitialSowId] = useState(sowParam);
+  const handledParam = useRef(false);
 
   const { data, loading, error, refetch } = useFetchData(() =>
     Promise.all([
       farrowingService.list(),
       sowService.list(),
       penService.list(),
+      matingService.list(),
     ]),
   );
-  const [farrowings, sows, pens] = data ?? [
+  const [farrowings, sows, pens, matings] = data ?? [
     EMPTY_FARROWINGS,
     EMPTY_SOWS,
     EMPTY_PENS,
+    EMPTY_MATINGS,
   ];
 
   const actions = useTableActions<Farrowing>({
@@ -59,6 +73,19 @@ function FarrowingsContent({ farm }: { farm: Farm }) {
     deletedMessage: (f) => `Đã xóa ca sinh của nái ${f.sow.code}`,
     onDeleted: refetch,
   });
+
+  useEffect(() => {
+    if (!sowParam || handledParam.current || !data) return;
+    handledParam.current = true;
+    router.replace("/farrowings"); // bỏ query để tải lại trang không mở form lần nữa
+    if (
+      sows.some((s) => String(s.id) === sowParam && s.status === "PREGNANT")
+    ) {
+      actions.openCreate();
+    } else {
+      toast.warning("Nái này hiện không ở trạng thái mang thai");
+    }
+  }, [sowParam, data, sows, router, actions, toast]);
 
   const [query, setQuery] = useState("");
   const debouncedQuery = useDebounce(query, 300);
@@ -98,6 +125,7 @@ function FarrowingsContent({ farm }: { farm: Farm }) {
       toast.success("Đã ghi nhận ca sinh");
     }
     actions.closeForm();
+    setInitialSowId("");
     refetch();
   }
 
@@ -236,10 +264,15 @@ function FarrowingsContent({ farm }: { farm: Farm }) {
         <FarrowingFormModal
           key={actions.selectedItem?.id ?? "new"}
           farrowing={actions.selectedItem}
+          initialSowId={initialSowId}
           sows={sows}
           pens={pens}
+          matings={matings}
           onSubmit={handleSubmit}
-          onClose={actions.closeForm}
+          onClose={() => {
+            setInitialSowId("");
+            actions.closeForm();
+          }}
         />
       )}
 

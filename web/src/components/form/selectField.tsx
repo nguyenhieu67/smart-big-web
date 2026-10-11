@@ -21,6 +21,7 @@ export interface SelectFieldProps {
   placeholder?: string;
   onChange?: (e: { target: { name?: string; value: string } }) => void;
   error?: string;
+  disabled?: boolean;
   size?: FieldSize;
   className?: string;
 }
@@ -74,6 +75,7 @@ export function SelectField({
   placeholder = "Chọn...",
   onChange,
   error,
+  disabled = false,
   size = "md",
   className = "",
 }: SelectFieldProps) {
@@ -87,6 +89,7 @@ export function SelectField({
   const close = () => setPosition(null);
 
   const toggle = () => {
+    if (disabled) return;
     if (isOpen) return close();
     if (triggerRef.current) {
       setPosition(computePosition(triggerRef.current, options.length));
@@ -146,7 +149,8 @@ export function SelectField({
           aria-haspopup="listbox"
           aria-expanded={isOpen}
           onClick={toggle}
-          className={`bg-surface flex w-full items-center justify-between rounded-xl border px-3 transition-all focus:ring-1 focus:outline-none ${SIZE_STYLES[size]} ${
+          disabled={disabled}
+          className={`bg-surface disabled:bg-surface-muted flex w-full items-center justify-between rounded-xl border px-3 transition-all focus:ring-1 focus:outline-none disabled:cursor-not-allowed disabled:opacity-60 ${SIZE_STYLES[size]} ${
             error
               ? "border-danger focus:border-danger focus:ring-danger"
               : "border-line focus:border-ring focus:ring-ring"
