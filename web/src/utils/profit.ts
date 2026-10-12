@@ -159,57 +159,98 @@ export function bySow(args: {
 }
 
 export interface BatchProfitRow {
-  id: number;
-  code: string;
+  id: number; // id đàn gốc
+  code: string; // mã đàn gốc
   sowCode: string; // nái mẹ, "—" nếu đàn nhập từ ngoài
-  quantity: number;
+  totalHeads: number; // tổng số con của đàn gốc = số con hiện tại + đã bán + đã chết
+  currentHeads: number; // số con còn lại
   soldHeads: number;
+  deadHeads: number; // số con chết đã ghi nhận
   revenue: number;
-  healthCost: number; // thuốc / vaccine ghi cho đàn
-  feedCost: number; // cám ghi cho đàn
+  healthCost: number; // thuốc / vaccine ghi cho đàn (gồm các đàn tách ra khi bán)
+  feedCost: number; // cám ghi cho đàn (gồm các đàn tách ra khi bán)
   net: number; // doanh thu - thuốc/vaccine - cám của đàn
 }
 
-// Hiệu quả theo từng đàn heo con: doanh thu từ các phiếu bán của đàn; chi phí là thuốc / vaccine và cám ghi trực tiếp cho đàn
+// Hiệu quả theo từng đàn heo con. Khi bán một phần, hệ thống tách phần bán ra thành đàn con (mã -B1, -B2...)
+// nên ở đây gộp các đàn tách về đàn gốc: tổng số con = còn lại + đã bán, doanh thu và chi phí cộng dồn.
+// `allSales` (không lọc ngày) dùng để biết đàn nào tách từ đàn nào; `sales` (đã lọc ngày) dùng để tính tiền.
 export function byBatch(args: {
   batches: PigletBatch[];
+  allSales: Sale[];
   sales: Sale[];
+  allHealthLogs: HealthLog[]; // không lọc ngày, để tính số con chết
   healthLogs: HealthLog[];
   feedLogs: FeedLog[];
 }): BatchProfitRow[] {
-  const rows = new Map<number, BatchProfitRow>(
-    args.batches.map((b) => [
-      b.id,
-      {
-        id: b.id,
-        code: b.code,
-        sowCode: b.sow?.code ?? "—",
-        quantity: b.quantity ?? 0,
-        soldHeads: 0,
-        revenue: 0,
-        healthCost: 0,
-        feedCost: 0,
-        net: 0,
-      },
-    ]),
-  );
+  // đàn tách -> đàn nó được tách ra
+  const parentOf = new Map<number, number>();
+  for (const s of args.allSales) {
+    if (s.source_batch_id != null) parentOf.set(s.batch_id, s.source_batch_id);
+  }
+  // đàn gốc: đi ngược các lần tách (có giới hạn bước để không lặp vô hạn nếu dữ liệu lỗi)
+  const rootOf = (id: number) => {
+    let current = id;
+    for (let i = 0; i < 50 && parentOf.has(current); i += 1) {
+      current = parentOf.get(current)!;
+    }
+    return current;
+  };
 
+  const byId = new Map(args.batches.map((b) => [b.id, b]));
+  const rows = new Map<number, BatchProfitRow>();
+  for (const b of args.batches) {
+    const rootId = rootOf(b.id);
+    const root = byId.get(rootId) ?? b;
+    const row = rows.get(root.id) ?? {
+      id: root.id,
+      code: root.code,
+      sowCode: root.sow?.code ?? "—",
+      totalHeads: 0,
+      currentHeads: 0,
+      soldHeads: 0,
+      deadHeads: 0,
+      revenue: 0,
+      healthCost: 0,
+      feedCost: 0,
+      net: 0,
+    };
+    row.totalHeads += b.quantity ?? 0; // đàn gốc còn lại + các đàn đã tách ra
+    rows.set(root.id, row);
+  }
+
+  const rowOf = (batchId: number) => rows.get(rootOf(batchId));
+  // Số con đã bán / còn lại tính trên mọi phiếu (không theo khoảng ngày) để tổng số con luôn khớp
+  for (const s of args.allSales) {
+    const row = rowOf(s.batch_id);
+    if (row) row.soldHeads += s.quantity;
+  }
+  for (const h of args.allHealthLogs) {
+    if (h.category !== "DEATH" || !h.head_count || h.batch_id == null) continue;
+    const row = rowOf(h.batch_id);
+    if (row) row.deadHeads += h.head_count;
+  }
+  // Tiền (doanh thu, chi phí) theo khoảng ngày đã chọn
   for (const s of args.sales) {
-    const row = rows.get(s.batch_id);
-    if (!row) continue;
-    row.soldHeads += s.quantity;
-    row.revenue += Number(s.total_revenue);
+    const row = rowOf(s.batch_id);
+    if (row) row.revenue += Number(s.total_revenue);
   }
   for (const h of args.healthLogs) {
-    const row = h.batch_id != null ? rows.get(h.batch_id) : undefined;
+    const row = h.batch_id != null ? rowOf(h.batch_id) : undefined;
     if (row) row.healthCost += Number(h.cost);
   }
   for (const f of args.feedLogs) {
-    const row = f.batch_id != null ? rows.get(f.batch_id) : undefined;
+    const row = f.batch_id != null ? rowOf(f.batch_id) : undefined;
     if (row) row.feedCost += Number(f.total_cost);
   }
 
   return [...rows.values()]
-    .map((r) => ({ ...r, net: r.revenue - r.healthCost - r.feedCost }))
+    .map((r) => ({
+      ...r,
+      // số lượng đàn đã bị trừ con chết nên tổng số con ban đầu = còn lại + đã bán + đã chết
+      totalHeads: r.totalHeads + r.deadHeads,
+      currentHeads: Math.max(r.totalHeads - r.soldHeads, 0),
+      net: r.revenue - r.healthCost - r.feedCost,
+    }))
     .sort((a, b) => b.net - a.net);
 }

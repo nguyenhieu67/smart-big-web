@@ -1,6 +1,7 @@
 export * from "./boarFormModal";
 export * from "./buyerFormModal";
 export * from "./confirmModal";
+export * from "./deathFormModal";
 export * from "./expenseCategoryFormModal";
 export * from "./expenseFormModal";
 export * from "./farrowingFormModal";

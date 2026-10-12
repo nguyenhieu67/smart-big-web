@@ -119,7 +119,9 @@ function ProfitContent() {
     () =>
       byBatch({
         batches: source.batches,
+        allSales: source.sales,
         sales: filtered.sales,
+        allHealthLogs: source.healthLogs,
         healthLogs: filtered.healthLogs,
         feedLogs: filtered.feedLogs,
       }),
@@ -226,14 +228,24 @@ function ProfitContent() {
       ),
     },
     {
-      value: "quantity",
-      text: "Số Con",
+      value: "totalHeads",
+      text: "Tổng Số Con",
+      className: "text-center font-bold",
+    },
+    {
+      value: "currentHeads",
+      text: "Số Con Hiện Tại",
       className: "text-center font-bold",
     },
     {
       value: "soldHeads",
       text: "Con Đã Bán",
       className: "text-center font-bold",
+    },
+    {
+      value: "deadHeads",
+      text: "Con Chết",
+      className: "text-danger text-center font-bold",
     },
     {
       value: "revenue",
@@ -428,9 +440,11 @@ function ProfitContent() {
                   Hiệu quả theo từng đàn heo con
                 </h3>
                 <p className="text-fg-muted mt-1 text-xs">
-                  Doanh thu từ các phiếu bán của đàn. Chi phí gồm thuốc /
-                  vaccine và cám ghi trực tiếp cho đàn; điện, nước, nhân công
-                  dùng chung nên không phân bổ.
+                  Mỗi dòng là một đàn gốc: các đàn tách ra khi bán một phần đã
+                  được gộp lại (tổng số con = hiện tại + đã bán + đã chết).
+                  Doanh thu từ các phiếu bán của đàn; chi phí gồm thuốc /
+                  vaccine và cám ghi cho đàn; điện, nước, nhân công dùng chung
+                  nên không phân bổ.
                 </p>
               </div>
               <Table

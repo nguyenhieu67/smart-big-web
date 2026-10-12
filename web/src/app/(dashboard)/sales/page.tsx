@@ -32,7 +32,12 @@ import type { Pen } from "@/types/pen";
 import type { PigletBatch } from "@/types/piglet";
 import type { Buyer, Sale } from "@/types/sale";
 import type { ColumnI } from "@/types/table";
-import { formatCurrency, formatDate, toLocalDateString } from "@/utils/format";
+import {
+  formatCurrency,
+  formatDate,
+  toInputDate,
+  toLocalDateString,
+} from "@/utils/format";
 import { isSellable } from "@/utils/piglet";
 
 const EMPTY_SALES: Sale[] = [];
@@ -41,6 +46,10 @@ const EMPTY_BATCHES: PigletBatch[] = [];
 const EMPTY_PENS: Pen[] = [];
 
 type Tab = "sales" | "buyers";
+
+// Qua ngày giao hàng (từ 00:00 ngày sau) thì không sửa phiếu nữa, khớp với API
+const isDelivered = (sale: Sale) =>
+  !!sale.shipping_date && toInputDate(sale.shipping_date) < toLocalDateString();
 
 export default function SalesPage() {
   return <FarmGate>{(farm) => <SalesContent farm={farm} />}</FarmGate>;
@@ -331,6 +340,7 @@ function SalesContent({ farm }: { farm: Farm }) {
                 : "Không tìm thấy phiếu bán phù hợp."
             }
             onEdit={canWrite ? saleActions.openEdit : undefined}
+            canEditRow={(sale) => !isDelivered(sale)}
             onDelete={canDelete ? saleActions.askDelete : undefined}
             page={currentPage}
             limit={limit}

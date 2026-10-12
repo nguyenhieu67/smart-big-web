@@ -8,7 +8,8 @@ export const sellableFrom = (batch: PigletBatch) =>
   addMonthsToDate(toInputDate(batch.birth_date), MIN_SALE_AGE_MONTHS);
 
 // Đã cai sữa trở đi thì bán được; chưa thì phải đủ 1 tháng tuổi vào ngày bán (saleDate dạng "YYYY-MM-DD").
-// Đàn đã bán hết thì không bán thêm.
+// Đàn đã bán hết, hoặc đang ở chuồng chờ bán (đã có phiếu bán, chờ giao) thì không bán thêm.
 export const isSellable = (batch: PigletBatch, saleDate: string) =>
   batch.stage !== "SOLD" &&
+  batch.pen?.status == null &&
   (SELLABLE_STAGES.includes(batch.stage) || saleDate >= sellableFrom(batch));

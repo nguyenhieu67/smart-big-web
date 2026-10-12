@@ -16,6 +16,7 @@ export interface Sale {
   price_per_kg: string;
   total_revenue: string; // server tự tính = total_weight_kg * price_per_kg
   batch_id: number;
+  source_batch_id: number | null; // có giá trị khi phiếu tách một phần từ đàn gốc
   buyer_id: number | null;
   pigletBatch: {
     id: number;

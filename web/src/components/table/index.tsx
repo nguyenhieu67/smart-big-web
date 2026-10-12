@@ -12,6 +12,7 @@ interface TableProps<T extends RowI = RowI> {
   onEdit?: (row: T) => void;
   onDelete?: (row: T) => void;
   onRowClick?: (row: T) => void; // bấm vào dòng (không tính cột thao tác)
+  canEditRow?: (row: T) => boolean; // dòng nào được hiện nút sửa (mặc định mọi dòng)
   page?: number;
   limit?: number;
   total?: number;
@@ -28,6 +29,7 @@ export function Table<T extends RowI = RowI>({
   onEdit,
   onDelete,
   onRowClick,
+  canEditRow,
   page,
   limit,
   total,
@@ -54,6 +56,7 @@ export function Table<T extends RowI = RowI>({
             onEdit={onEdit}
             onDelete={onDelete}
             onRowClick={onRowClick}
+            canEditRow={canEditRow}
             limit={limit}
             total={total}
           />

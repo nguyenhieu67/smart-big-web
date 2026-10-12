@@ -20,6 +20,7 @@ const healthLogBase = z.object({
   sow_id: z.string(),
   batch_id: z.string(),
   vaccine_type_id: z.string(), // vaccine chọn từ danh mục, trống = nhập tay
+  head_count: z.string(), // số con chết, chỉ dùng cho nhật ký chết của đàn heo con
   name: z
     .string()
     .trim()
@@ -58,8 +59,10 @@ const nextAfterLog = {
 };
 
 // Bỏ các id trống khỏi body gửi API (API ép chuỗi rỗng thành id 0 và báo lỗi)
-const pickIds = <T extends { vaccine_type_id: string }>({
+const pickIds = <T extends { vaccine_type_id: string; head_count: string }>({
   vaccine_type_id,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  head_count, // số con chết chỉ đặt khi tạo, sửa thì bỏ qua
   ...rest
 }: T) => ({ ...rest, ...(vaccine_type_id ? { vaccine_type_id } : {}) });
 
@@ -75,10 +78,20 @@ export const healthLogCreateSchema = healthLogBase
     message: "Vui lòng chọn nái hoặc đàn heo con",
     path: ["sow_id"],
   })
+  // Chết / loại thải của đàn heo con: bắt buộc nhập số con chết (số nguyên >= 1)
+  .refine(
+    (d) =>
+      !(d.category === "DEATH" && d.batch_id !== "") ||
+      (/^\d+$/.test(d.head_count.trim()) && Number(d.head_count) >= 1),
+    { message: "Vui lòng nhập số con chết", path: ["head_count"] },
+  )
   .transform(({ sow_id, batch_id, ...rest }) => ({
     ...pickIds(rest),
     ...(sow_id ? { sow_id } : {}),
     ...(batch_id ? { batch_id } : {}),
+    ...(rest.category === "DEATH" && batch_id
+      ? { head_count: Number(rest.head_count) }
+      : {}),
   }));
 
 export type HealthLogFormValues = z.input<typeof healthLogCreateSchema>;

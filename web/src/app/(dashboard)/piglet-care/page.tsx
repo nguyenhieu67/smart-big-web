@@ -123,40 +123,44 @@ function PigletCareContent({ farm }: { farm: Farm }) {
       logsByBatch.set(log.batch_id, byKey);
     }
 
-    return batches
-      .filter((b) => b.stage !== "SOLD")
-      .map((batch) => {
-        const age = ageInDays(batch.birth_date);
-        const logs = logsByBatch.get(batch.id);
+    return (
+      batches
+        // Không theo dõi heo đã bán hoặc đang chờ bán (ở chuồng chờ bán): đàn tách ra khi bán một phần cùng quy trình
+        // vaccine với đàn gốc nên chỉ theo dõi đàn gốc, tránh lặp quy trình
+        .filter((b) => b.stage !== "SOLD" && b.pen?.status == null)
+        .map((batch) => {
+          const age = ageInDays(batch.birth_date);
+          const logs = logsByBatch.get(batch.id);
 
-        const steps = VACCINE_STEPS.map<StepView>((step) => {
-          const log = logs?.get(step.id) ?? logs?.get(step.task) ?? null;
-          const state: StepState = log
-            ? "done"
-            : age > step.maxDay
-              ? "overdue"
-              : age >= step.minDay
-                ? "due"
-                : "upcoming";
-          return { step, state, log, daysToStart: step.minDay - age };
-        });
+          const steps = VACCINE_STEPS.map<StepView>((step) => {
+            const log = logs?.get(step.id) ?? logs?.get(step.task) ?? null;
+            const state: StepState = log
+              ? "done"
+              : age > step.maxDay
+                ? "overdue"
+                : age >= step.minDay
+                  ? "due"
+                  : "upcoming";
+            return { step, state, log, daysToStart: step.minDay - age };
+          });
 
-        return {
-          id: batch.id,
-          batch,
-          age,
-          steps,
-          doneCount: steps.filter((s) => s.state === "done").length,
-          urgent: steps.filter(
-            (s) => s.state === "overdue" || s.state === "due",
-          ),
-        };
-      })
-      .filter((v) => v.age >= 0 && v.age <= TRACK_UNTIL_DAY)
-      .sort(
-        (a, b) =>
-          overdueOf(b) - overdueOf(a) || dueOf(b) - dueOf(a) || a.age - b.age,
-      );
+          return {
+            id: batch.id,
+            batch,
+            age,
+            steps,
+            doneCount: steps.filter((s) => s.state === "done").length,
+            urgent: steps.filter(
+              (s) => s.state === "overdue" || s.state === "due",
+            ),
+          };
+        })
+        .filter((v) => v.age >= 0 && v.age <= TRACK_UNTIL_DAY)
+        .sort(
+          (a, b) =>
+            overdueOf(b) - overdueOf(a) || dueOf(b) - dueOf(a) || a.age - b.age,
+        )
+    );
   }, [batches, healthLogs]);
 
   const overdueCount = views.reduce(

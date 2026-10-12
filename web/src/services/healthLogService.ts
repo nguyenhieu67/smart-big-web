@@ -28,6 +28,7 @@ export const healthLogService = {
     status: TreatmentStatus;
     vaccine_type_id?: number;
     care_step?: string;
+    head_count?: number; // số con chết khi category = DEATH
   }) {
     const { data } = await api.post<{ data: HealthLog }>("/health-logs", input);
     return data.data;

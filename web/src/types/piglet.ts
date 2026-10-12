@@ -13,5 +13,10 @@ export interface PigletBatch {
   sow_id: number | null;
   pen_id: number | null;
   sow: { id: number; code: string } | null;
-  pen: { id: number; name: string } | null;
+  pen: {
+    id: number;
+    name: string;
+    subname: string | null;
+    status: "EMPTY" | "AWAITING_SALE" | null; // khác null = chuồng chờ bán
+  } | null;
 }

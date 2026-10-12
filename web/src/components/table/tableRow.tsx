@@ -7,6 +7,7 @@ interface TableRowProps<T extends RowI = RowI> {
   onEdit?: (row: T) => void;
   onDelete?: (row: T) => void;
   onRowClick?: (row: T) => void;
+  canEditRow?: (row: T) => boolean;
 }
 
 export function TableRow<T extends RowI = RowI>({
@@ -15,6 +16,7 @@ export function TableRow<T extends RowI = RowI>({
   onEdit,
   onDelete,
   onRowClick,
+  canEditRow,
 }: TableRowProps<T>) {
   return (
     <tr
@@ -30,7 +32,7 @@ export function TableRow<T extends RowI = RowI>({
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center gap-1">
-                {onEdit && (
+                {onEdit && (!canEditRow || canEditRow(row)) && (
                   <button
                     type="button"
                     onClick={() => onEdit(row)}

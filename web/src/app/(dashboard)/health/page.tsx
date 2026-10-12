@@ -219,6 +219,17 @@ function HealthContent({ farm }: { farm: Farm }) {
       className: "text-fg font-bold",
       render: (l) => l.sow?.code ?? l.pigletBatch?.code ?? "—",
     },
+    ...(tab === "piglets"
+      ? [
+          {
+            value: "head_count",
+            text: "Số Con Chết",
+            className: "text-center font-semibold",
+            render: (l: HealthLog) =>
+              l.head_count != null ? `${l.head_count} con` : "—",
+          },
+        ]
+      : []),
     {
       value: "category",
       text: "Phân Loại",

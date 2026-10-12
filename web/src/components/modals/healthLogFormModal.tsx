@@ -41,6 +41,7 @@ function toFormValues(log: HealthLog | null): HealthLogFormValues {
       sow_id: "",
       batch_id: "",
       vaccine_type_id: "",
+      head_count: "",
       name: "",
       dose: "",
       status: "COMPLETED",
@@ -55,6 +56,7 @@ function toFormValues(log: HealthLog | null): HealthLogFormValues {
     batch_id: log.batch_id != null ? String(log.batch_id) : "",
     vaccine_type_id:
       log.vaccine_type_id != null ? String(log.vaccine_type_id) : "",
+    head_count: log.head_count != null ? String(log.head_count) : "",
     name: log.name,
     dose: log.dose ?? "",
     status: log.status,
@@ -182,9 +184,31 @@ export function HealthLogFormModal({
             value={formData.category}
             onChange={handleChange}
             error={errors.category}
+            // Nhật ký chết của đàn đã trừ số con nên không đổi phân loại (xóa rồi ghi lại)
+            disabled={
+              !!log && log.category === "DEATH" && log.head_count != null
+            }
             size="sm"
           />
         </div>
+
+        {/* Chết / loại thải của đàn heo con: nhập số con chết, tự trừ vào số lượng đàn */}
+        {formData.category === "DEATH" &&
+          (log ? log.batch_id != null : target === "batch") && (
+            <InputField
+              id="head_count"
+              name="head_count"
+              type="number"
+              min="1"
+              step="1"
+              label="Số con chết *"
+              value={formData.head_count}
+              onChange={handleChange}
+              error={errors.head_count}
+              disabled={!!log}
+              size="sm"
+            />
+          )}
 
         {log ? (
           <InputField

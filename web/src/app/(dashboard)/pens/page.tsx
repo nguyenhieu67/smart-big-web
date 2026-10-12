@@ -6,6 +6,7 @@ import {
   TrashIcon,
   WarehouseIcon,
 } from "@/components/icons";
+import { PEN_STATUS_LABELS } from "@/constants/pen";
 import { FarmGate, PageHeader } from "@/components/layout";
 import { ConfirmModal, PenFormModal } from "@/components/modals";
 import { Button } from "@/components/ui";
@@ -111,11 +112,20 @@ function PensContent({ farm }: { farm: Farm }) {
                     />
                     <span className="truncate">{pen.name}</span>
                   </h3>
-                  {pen.subname && (
-                    <span className="bg-info-soft text-info-fg shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold">
-                      {pen.subname}
-                    </span>
-                  )}
+                  <div className="flex shrink-0 flex-wrap justify-end gap-1.5">
+                    {pen.subname && (
+                      <span className="bg-info-soft text-info-fg rounded-full px-2.5 py-1 text-xs font-semibold">
+                        {pen.subname}
+                      </span>
+                    )}
+                    {pen.status && (
+                      <span
+                        className={`badge ${PEN_STATUS_LABELS[pen.status].badge}`}
+                      >
+                        {PEN_STATUS_LABELS[pen.status].label}
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 {pen.description && (

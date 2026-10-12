@@ -12,6 +12,7 @@ export interface HealthLog {
   status: TreatmentStatus;
   cost: string;
   next_date: string | null;
+  head_count: number | null; // số con chết (nhật ký chết của đàn heo con)
   sow_id: number | null;
   batch_id: number | null;
   vaccine_type_id: number | null;

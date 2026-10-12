@@ -9,6 +9,7 @@ interface TableBodyProps<T extends RowI = RowI> {
   onEdit?: (row: T) => void;
   onDelete?: (row: T) => void;
   onRowClick?: (row: T) => void;
+  canEditRow?: (row: T) => boolean;
   limit?: number;
   total?: number;
 }
@@ -20,6 +21,7 @@ export function TableBody<T extends RowI = RowI>({
   onEdit,
   onDelete,
   onRowClick,
+  canEditRow,
   limit,
   total,
 }: TableBodyProps<T>) {
@@ -53,6 +55,7 @@ export function TableBody<T extends RowI = RowI>({
           onEdit={onEdit}
           onDelete={onDelete}
           onRowClick={onRowClick}
+          canEditRow={canEditRow}
         />
       ))}
       {Array.from({ length: fillerCount }).map((_, index) => (

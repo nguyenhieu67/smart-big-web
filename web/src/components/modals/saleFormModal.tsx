@@ -5,7 +5,7 @@ import { useRef } from "react";
 import { InputField, SelectField } from "@/components/form";
 import { Button, FormAlert } from "@/components/ui";
 import { NEW_BUYER } from "@/constants/buyer";
-import { AUTO_PEN, HOLDING_PEN_SPARE } from "@/constants/pen";
+import { AUTO_PEN } from "@/constants/pen";
 import { MIN_SALE_AGE_MONTHS } from "@/constants/piglet";
 import { useForm, useFormSubmit } from "@/hooks";
 import {
@@ -17,7 +17,6 @@ import type { Pen } from "@/types/pen";
 import type { PigletBatch } from "@/types/piglet";
 import type { Buyer, Sale } from "@/types/sale";
 import { formatCurrency, toInputDate, toLocalDateString } from "@/utils/format";
-import { penOccupied } from "@/utils/pen";
 import { isSellable } from "@/utils/piglet";
 
 import { Modal } from "./modal";
@@ -62,27 +61,6 @@ function toFormValues(sale: Sale | null): SaleFormValues {
   };
 }
 
-// Chuồng chờ bán phải khác chuồng hiện tại của đàn và còn đủ chỗ cho số con bán.
-// Bán một phần thì đàn được tách: chỉ số con bán chuyển đi, phần còn lại ở lại chuồng cũ.
-function penFits(pen: Pen, batch: PigletBatch | undefined, quantity: number) {
-  if (!batch || pen.id === batch.pen_id) return false;
-  return pen.capacity - penOccupied(pen) >= quantity;
-}
-
-// Chuồng đang chọn có còn hợp lệ không ("" = không chuyển, luôn hợp lệ)
-function selectedPenFits(
-  pens: Pen[],
-  batches: PigletBatch[],
-  penId: string,
-  batchId: string,
-  quantity: number,
-) {
-  if (penId === AUTO_PEN || penId === "") return true;
-  const batch = batches.find((b) => String(b.id) === batchId);
-  const pen = pens.find((p) => String(p.id) === penId);
-  return pen ? penFits(pen, batch, quantity) : false;
-}
-
 // Parent render modal này có `key` theo từng bản ghi nên state luôn khởi tạo mới mỗi lần mở
 export function SaleFormModal({
   sale,
@@ -108,26 +86,6 @@ export function SaleFormModal({
             ? { batch_id: "", pen_id: AUTO_PEN }
             : {};
         },
-        batch_id: (value, prev) =>
-          selectedPenFits(
-            pens,
-            batches,
-            prev.pen_id,
-            String(value),
-            Number(prev.quantity) || 0,
-          )
-            ? {}
-            : { pen_id: AUTO_PEN },
-        quantity: (value, prev) =>
-          selectedPenFits(
-            pens,
-            batches,
-            prev.pen_id,
-            prev.batch_id,
-            Number(value) || 0,
-          )
-            ? {}
-            : { pen_id: AUTO_PEN },
       },
     },
   );
@@ -171,15 +129,18 @@ export function SaleFormModal({
   const remaining =
     selectedBatch?.quantity != null ? selectedBatch.quantity - quantity : null;
   const wholeBatch = remaining === 0;
-  const otherPens = pens.filter((p) => penFits(p, selectedBatch, quantity));
+  // Chỉ liệt kê chuồng chờ bán đang trống; chuồng đang có heo chờ bán không dùng chung, hết chuồng trống thì tự tạo "-NN" kế tiếp
+  const emptyHoldingPens = pens.filter((p) => p.status === "EMPTY");
   const penOptions = [
-    { value: AUTO_PEN, label: "Tự động tạo chuồng chờ bán mới" },
-    ...otherPens.map((p) => ({
+    {
+      value: AUTO_PEN,
+      label: "Tự động (dùng chuồng chờ bán trống, hoặc tạo chuồng mới)",
+    },
+    ...emptyHoldingPens.map((p) => ({
       value: String(p.id),
-      label: `Chuyển vào ${p.name} (còn ${p.capacity - penOccupied(p)} chỗ)`,
+      label: `${p.name} (trống)`,
     })),
   ];
-  const newPenCapacity = quantity + HOLDING_PEN_SPARE;
   const currentPenName = pens.find((p) => p.id === selectedBatch?.pen_id)?.name;
 
   // Server tự tính total_revenue = tổng trọng lượng * đơn giá; đây chỉ là bản xem trước
@@ -308,28 +269,14 @@ export function SaleFormModal({
               error={errors.pen_id}
               size="sm"
             />
-            <p
-              className={`-mt-2 text-xs ${
-                selectedBatch && quantity > 0 && otherPens.length === 0
-                  ? "text-warning-fg"
-                  : "text-fg-muted"
-              }`}
-            >
+            <p className="text-fg-muted -mt-2 text-xs">
               {!selectedBatch || quantity <= 0
-                ? "Chọn đàn và số lượng bán để xem các chuồng đủ chỗ."
-                : (() => {
-                    const split = wholeBatch
-                      ? "Bán hết đàn: cả đàn chuyển sang chuồng chờ bán."
-                      : remaining != null
-                        ? `Tách ${quantity} con sang chuồng chờ bán, ${remaining} con còn lại ở lại${currentPenName ? ` ${currentPenName}` : " chuồng hiện tại"}.`
-                        : `Đàn chưa ghi số lượng nên cả đàn chuyển sang chuồng chờ bán.`;
-                    if (otherPens.length === 0) {
-                      return `${split} Không có chuồng nào đủ chỗ cho ${quantity} con, nên tạo chuồng chờ bán mới (sức chứa ${newPenCapacity} con).`;
-                    }
-                    return formData.pen_id === AUTO_PEN
-                      ? `${split} Chuồng mới có sức chứa ${newPenCapacity} con (${quantity} con + ${HOLDING_PEN_SPARE} chỗ dự phòng).`
-                      : split;
-                  })()}
+                ? "Chọn đàn và số lượng bán. Heo bán được chuyển vào chuồng chờ bán, chuồng trở lại trống sau ngày giao hàng để dùng cho phiếu sau."
+                : wholeBatch
+                  ? "Bán hết đàn: cả đàn chuyển sang chuồng chờ bán."
+                  : remaining != null
+                    ? `Tách ${quantity} con sang chuồng chờ bán, ${remaining} con còn lại ở lại${currentPenName ? ` ${currentPenName}` : " chuồng hiện tại"}.`
+                    : "Đàn chưa ghi số lượng nên cả đàn chuyển sang chuồng chờ bán."}
             </p>
           </>
         )}

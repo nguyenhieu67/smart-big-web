@@ -145,18 +145,21 @@ export function PigletBatchFormModal({
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-3">
-          <InputField
-            id="quantity"
-            name="quantity"
-            type="number"
-            min="0"
-            step="1"
-            label="Số lượng hiện tại (con)"
-            value={formData.quantity}
-            onChange={handleChange}
-            error={errors.quantity}
-            size="sm"
-          />
+          {/* Số lượng chỉ nhập khi tạo đàn; sau đó thay đổi qua phiếu bán / ghi nhận con chết nên không hiện ở form sửa */}
+          {!batch && (
+            <InputField
+              id="quantity"
+              name="quantity"
+              type="number"
+              min="0"
+              step="1"
+              label="Số lượng hiện tại (con)"
+              value={formData.quantity}
+              onChange={handleChange}
+              error={errors.quantity}
+              size="sm"
+            />
+          )}
           <InputField
             id="avg_weight"
             name="avg_weight"
