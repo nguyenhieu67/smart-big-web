@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useMemo, useState } from "react";
 
 import { PawIcon, SearchIcon } from "@/components/icons";
 import { SelectField } from "@/components/form";
@@ -83,10 +84,38 @@ interface BatchView {
 }
 
 export default function PigletCarePage() {
-  return <FarmGate>{(farm) => <PigletCareContent farm={farm} />}</FarmGate>;
+  return (
+    <Suspense>
+      <PigletCareEntry />
+    </Suspense>
+  );
 }
 
-function PigletCareContent({ farm }: { farm: Farm }) {
+// /piglet-care?batch=<id> (từ thông báo) -> mở sẵn lịch tiêm của đàn đó.
+// key theo query nên bấm lại một thông báo sẽ mở lại dù đang ở sẵn trang này.
+function PigletCareEntry() {
+  const params = useSearchParams();
+  const batch = Number(params.get("batch"));
+  return (
+    <FarmGate>
+      {(farm) => (
+        <PigletCareContent
+          key={params.toString()}
+          farm={farm}
+          initialBatchId={Number.isInteger(batch) && batch > 0 ? batch : null}
+        />
+      )}
+    </FarmGate>
+  );
+}
+
+function PigletCareContent({
+  farm,
+  initialBatchId,
+}: {
+  farm: Farm;
+  initialBatchId: number | null;
+}) {
   // Ghi nhận: ai cũng làm; bỏ đánh dấu (xóa bản ghi sức khỏe): OWNER/MANAGER
   const canUndo = farm.role === "OWNER" || farm.role === "MANAGER";
   const toast = useAppToast();
@@ -172,7 +201,7 @@ function PigletCareContent({ farm }: { farm: Farm }) {
     0,
   );
 
-  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [selectedId, setSelectedId] = useState<number | null>(initialBatchId);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("");
   const debouncedQuery = useDebounce(query, 300);

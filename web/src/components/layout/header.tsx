@@ -4,11 +4,12 @@ import Link from "next/link";
 
 import {
   BarsIcon,
-  BellIcon,
   PiggyBankIcon,
   RightToBracketIcon,
 } from "@/components/icons";
 import { useAuth } from "@/providers/authProvider";
+
+import { NotificationBell } from "./notificationBell";
 
 interface HeaderProps {
   onToggleSidebar: () => void;
@@ -63,13 +64,7 @@ export function Header({ onToggleSidebar }: HeaderProps) {
           </select>
         )}
 
-        <Link
-          href="/calendar"
-          aria-label="Cảnh báo việc cần làm"
-          className="text-shell-fg hover:bg-shell-hover rounded-lg p-2 transition-colors hover:text-white"
-        >
-          <BellIcon size="md" />
-        </Link>
+        <NotificationBell farmId={activeFarm?.id} />
 
         <div className="border-shell-line flex items-center space-x-1 border-l pl-2 sm:space-x-2 sm:pl-3">
           <span className="text-shell-fg hidden max-w-48 truncate text-xs md:block">

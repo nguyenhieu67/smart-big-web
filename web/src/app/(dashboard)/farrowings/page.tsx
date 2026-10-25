@@ -36,19 +36,40 @@ const EMPTY_MATINGS: Mating[] = [];
 export default function FarrowingsPage() {
   return (
     <Suspense>
-      <FarmGate>{(farm) => <FarrowingsContent farm={farm} />}</FarmGate>
+      <FarrowingsEntry />
     </Suspense>
   );
 }
 
-function FarrowingsContent({ farm }: { farm: Farm }) {
+// Đi từ trang thai kỳ / thông báo sang: /farrowings?sow=<id> -> mở sẵn form ghi nhận ca sinh của nái đó.
+// key theo query nên bấm lại một thông báo (query đổi) sẽ mở lại form dù đang ở sẵn trang này.
+function FarrowingsEntry() {
+  const params = useSearchParams();
+  return (
+    <FarmGate>
+      {(farm) => (
+        <FarrowingsContent
+          key={params.toString()}
+          farm={farm}
+          sowParam={params.get("sow") ?? ""}
+        />
+      )}
+    </FarmGate>
+  );
+}
+
+function FarrowingsContent({
+  farm,
+  sowParam,
+}: {
+  farm: Farm;
+  sowParam: string;
+}) {
   // Nhật ký sinh sản: ai cũng thêm và sửa, OWNER/MANAGER xóa
   const canDelete = farm.role === "OWNER" || farm.role === "MANAGER";
 
   const router = useRouter();
   const toast = useAppToast();
-  // Đi từ trang thai kỳ sang: /farrowings?sow=<id> -> mở sẵn form ghi nhận ca sinh của nái đó
-  const sowParam = useSearchParams().get("sow") ?? "";
   // Chốt nái từ link ở lần render đầu; xóa khi đóng form để các lần thêm sau không chọn sẵn
   const [initialSowId, setInitialSowId] = useState(sowParam);
   const handledParam = useRef(false);
@@ -77,7 +98,6 @@ function FarrowingsContent({ farm }: { farm: Farm }) {
   useEffect(() => {
     if (!sowParam || handledParam.current || !data) return;
     handledParam.current = true;
-    router.replace("/farrowings"); // bỏ query để tải lại trang không mở form lần nữa
     if (
       sows.some((s) => String(s.id) === sowParam && s.status === "PREGNANT")
     ) {
