@@ -64,7 +64,7 @@ export function ScreenMock({
 }: MockProps) {
   return (
     <figure
-      className={`border-line bg-surface-muted relative overflow-hidden rounded-2xl border shadow-sm select-none ${dialog ? (tabs ? "min-h-[370px]" : "min-h-[330px]") : ""}`}
+      className={`border-line bg-surface-muted relative overflow-hidden rounded-2xl border shadow-sm select-none ${dialog ? (tabs ? "min-h-92.5" : "min-h-82.5") : ""}`}
       aria-label={`Minh họa màn hình ${title}`}
     >
       <div className="bg-surface border-line flex items-center gap-1.5 border-b px-3 py-2">
@@ -167,7 +167,7 @@ export function ScreenMock({
                 <div className="flex items-start justify-between gap-1">
                   <p className="text-fg text-[10px] font-bold">{c.title}</p>
                   {c.badge && (
-                    <span className="badge badge-warning !px-1.5 !py-0 !text-[9px]">
+                    <span className="badge badge-warning px-1.5! py-0! text-[9px]!">
                       {c.badge}
                     </span>
                   )}

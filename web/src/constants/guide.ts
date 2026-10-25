@@ -36,7 +36,6 @@ export const GUIDE_SECTIONS: GuideSection[] = [
       },
     ],
     tips: [
-      "OWNER (chủ trại): làm được tất cả, kể cả xóa dữ liệu danh mục và tiền. MANAGER (quản lý): thêm, sửa mọi thứ; xóa nhật ký. WORKER (nhân viên): xem và ghi nhật ký hằng ngày, không xóa.",
       "Thứ tự nên làm khi mới dùng: Chuồng trại → Heo nái → Heo đực/tinh → Phối giống → Thai kỳ → Sinh sản → Đàn heo con → Thức ăn → Vaccine → Bán heo → Chi phí → Doanh thu.",
     ],
     figure: {
